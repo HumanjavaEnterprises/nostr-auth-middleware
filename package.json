@@ -1,5 +1,5 @@
 {
-  "name": "@maiqr/nostr-auth-enroll",
+  "name": "nostr-auth-enroll",
   "version": "0.1.0",
   "description": "A comprehensive Nostr authentication and enrollment middleware for web applications, with TypeScript support and Supabase integration",
   "main": "dist/index.js",

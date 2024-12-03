@@ -1,15 +1,57 @@
 # Nostr Authentication Flow
 
-This document describes the complete authentication flow using Nostr for web applications, integrating with Supabase for user management.
+This document describes the authentication flow in the Nostr Auth Middleware. For a comprehensive understanding of how this fits into the larger system architecture, please refer to our [Architecture Guide](architecture-guide.md).
 
-## Overview
+## Architectural Context
 
-The authentication flow uses Nostr's cryptographic signing capabilities to prove user identity without passwords. The process involves:
-1. Challenge-response authentication
-2. JWT token generation
-3. Supabase session management
+The authentication flow is implemented as a standalone security service, following our core architectural principles:
 
-## Detailed Flow
+```plaintext
+┌─────────────────┐
+│   Client App    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Nostr Auth     │◄── You are here
+│   Service       │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  App Platform   │
+└─────────────────┘
+```
+
+This isolation ensures:
+- Clear security boundaries
+- Auditable authentication code
+- Protected application logic
+- Scalable architecture
+
+## Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant C as Client App
+    participant A as Auth Service
+    participant P as App Platform
+
+    Note over C,P: Authentication Flow
+    C->>A: 1. Request Challenge
+    A->>A: 2. Generate Challenge
+    A->>C: 3. Return Challenge
+    C->>C: 4. Sign Challenge
+    C->>A: 5. Submit Signed Challenge
+    A->>A: 6. Verify Signature
+    A->>A: 7. Generate JWT
+    A->>C: 8. Return JWT
+    C->>P: 9. Use JWT with App Platform
+
+    Note over C,P: The App Platform remains independent
+```
+
+## Detailed Steps
 
 ### 1. Frontend Initialization
 ```javascript
@@ -197,4 +239,3 @@ The middleware includes test scripts to verify:
 Run tests using:
 ```bash
 npm run test:live
-```

@@ -1,5 +1,13 @@
 # Nostr Auth & Enrollment Middleware
 
+[![License](https://img.shields.io/npm/l/@maiqr/nostr-auth-enroll)](https://github.com/HumanjavaEnterprises/nostr-auth-middleware/blob/main/LICENSE)
+[![npm](https://img.shields.io/npm/v/@maiqr/nostr-auth-enroll)](https://www.npmjs.com/package/@maiqr/nostr-auth-enroll)
+[![GitHub issues](https://img.shields.io/github/issues/HumanjavaEnterprises/nostr-auth-middleware)](https://github.com/HumanjavaEnterprises/nostr-auth-middleware/issues)
+[![GitHub stars](https://img.shields.io/github/stars/HumanjavaEnterprises/nostr-auth-middleware)](https://github.com/HumanjavaEnterprises/nostr-auth-middleware/stargazers)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
+[![Node Version](https://img.shields.io/node/v/@maiqr/nostr-auth-enroll)](https://nodejs.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://makeapullrequest.com)
+
 A standalone, open-source middleware for handling Nostr authentication and enrollment in web applications. Built with TypeScript and designed for scalability and security.
 
 > **Important**: This middleware requires TypeScript and ES Modules. See [Good to Know](docs/good_to_know.md) for critical technical requirements and best practices.

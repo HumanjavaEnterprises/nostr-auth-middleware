@@ -1,14 +1,56 @@
 # Nostr Auth Middleware Test Cases
 
 ## Prerequisites
+
+### Development Environment
 ```bash
-# Start the server (assuming it's running on localhost:3000)
+# Set environment
+export NODE_ENV=development
+
+# Start the server in development mode
 npm run dev
 ```
 
-## Test Cases
+### Production Environment
+```bash
+# Set environment
+export NODE_ENV=production
 
-### 1. Request Challenge
+# Start the server in production mode
+npm run start
+```
+
+## Test Categories
+
+### 1. Environment Configuration Tests
+
+#### Development Mode
+```bash
+# Test development directory structure
+./scripts/tests/test-auth.sh --env development --test directories
+
+# Test development permissions
+./scripts/tests/test-auth.sh --env development --test permissions
+
+# Test configuration loading
+./scripts/tests/test-auth.sh --env development --test config
+```
+
+#### Production Mode
+```bash
+# Test production directory structure
+sudo ./scripts/tests/test-auth.sh --env production --test directories
+
+# Test production permissions
+sudo ./scripts/tests/test-auth.sh --env production --test permissions
+
+# Test configuration loading
+sudo ./scripts/tests/test-auth.sh --env production --test config
+```
+
+### 2. Authentication Flow Tests
+
+#### Request Challenge
 ```bash
 curl -X POST http://localhost:3000/auth/nostr/challenge \
   -H "Content-Type: application/json" \
@@ -29,7 +71,7 @@ curl -X POST http://localhost:3000/auth/nostr/challenge \
 # }
 ```
 
-### 2. Verify Challenge Response
+#### Verify Challenge Response
 ```bash
 curl -X POST http://localhost:3000/auth/nostr/verify \
   -H "Content-Type: application/json" \
@@ -62,7 +104,9 @@ curl -X POST http://localhost:3000/auth/nostr/verify \
 # }
 ```
 
-### 3. Start Enrollment
+### 3. Enrollment Tests
+
+#### Start Enrollment
 ```bash
 curl -X POST http://localhost:3000/auth/nostr/enroll \
   -H "Content-Type: application/json" \
@@ -83,7 +127,7 @@ curl -X POST http://localhost:3000/auth/nostr/enroll \
 # }
 ```
 
-### 4. Verify Enrollment
+#### Verify Enrollment
 ```bash
 curl -X POST http://localhost:3000/auth/nostr/enroll/verify \
   -H "Content-Type: application/json" \
@@ -105,119 +149,70 @@ curl -X POST http://localhost:3000/auth/nostr/enroll/verify \
 # Expected Response:
 # {
 #   "success": true,
-#   "message": "Enrollment successful",
-#   "profile": {
-#     "pubkey": "npub1...",
-#     "name": "User Name",
-#     "about": "About me",
-#     "picture": "https://..."
-#   }
+#   "message": "Enrollment verified"
 # }
 ```
 
-### 5. Fetch Profile
-```bash
-curl -X GET http://localhost:3000/auth/nostr/profile/npub1...your_public_key
+### 4. Key Management Tests
 
-# Expected Response:
-# {
-#   "pubkey": "npub1...",
-#   "name": "User Name",
-#   "about": "About me",
-#   "picture": "https://...",
-#   "nip05": "user@domain.com",
-#   "lud16": "lightning_address"
-# }
+#### Development Mode
+```bash
+# Test local key generation
+./scripts/tests/test-auth.sh --env development --test keys
+
+# Test key persistence
+./scripts/tests/test-auth.sh --env development --test key-persistence
 ```
 
-## Error Cases
-
-### 1. Invalid Public Key
+#### Production Mode
 ```bash
-curl -X POST http://localhost:3000/auth/nostr/challenge \
-  -H "Content-Type: application/json" \
-  -d '{
-    "pubkey": "invalid_key"
-  }'
+# Test Supabase key management
+sudo ./scripts/tests/test-auth.sh --env production --test keys
 
-# Expected Response:
-# {
-#   "error": "Invalid public key format"
-# }
+# Test key rotation
+sudo ./scripts/tests/test-auth.sh --env production --test key-rotation
 ```
 
-### 2. Expired Challenge
-```bash
-curl -X POST http://localhost:3000/auth/nostr/verify \
-  -H "Content-Type: application/json" \
-  -d '{
-    "challengeId": "expired_id",
-    "signedEvent": { ... }
-  }'
+### 5. Logging Tests
 
-# Expected Response:
-# {
-#   "error": "Challenge has expired"
-# }
+#### Development Mode
+```bash
+# Test local logging
+./scripts/tests/test-auth.sh --env development --test logging
+
+# Test log rotation
+./scripts/tests/test-auth.sh --env development --test log-rotation
 ```
 
-### 3. Invalid Signature
+#### Production Mode
 ```bash
-curl -X POST http://localhost:3000/auth/nostr/verify \
-  -H "Content-Type: application/json" \
-  -d '{
-    "challengeId": "abc123",
-    "signedEvent": {
-      ...
-      "sig": "invalid_signature"
-    }
-  }'
+# Test system logging
+sudo ./scripts/tests/test-auth.sh --env production --test logging
 
-# Expected Response:
-# {
-#   "error": "Invalid signature"
-# }
+# Test log management
+sudo ./scripts/tests/test-auth.sh --env production --test log-management
 ```
 
-## Integration Testing Script
+## Automated Test Suite
+
+Run the complete test suite:
+
 ```bash
-#!/bin/bash
+# Development environment
+npm run test:dev
 
-# Colors for output
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m'
-
-# Test server URL
-BASE_URL="http://localhost:3000/auth/nostr"
-
-# Test public key (replace with a valid test key)
-TEST_PUBKEY="npub1..."
-
-echo "Starting Nostr Auth Middleware Tests..."
-
-# Test 1: Challenge Request
-echo -e "\n${GREEN}Testing Challenge Request...${NC}"
-CHALLENGE_RESPONSE=$(curl -s -X POST "$BASE_URL/challenge" \
-  -H "Content-Type: application/json" \
-  -d "{\"pubkey\": \"$TEST_PUBKEY\"}")
-
-CHALLENGE_ID=$(echo $CHALLENGE_RESPONSE | jq -r '.challengeId')
-
-if [ ! -z "$CHALLENGE_ID" ]; then
-  echo "✓ Challenge request successful"
-else
-  echo -e "${RED}✗ Challenge request failed${NC}"
-  exit 1
-fi
-
-# Add more test cases here...
-
-echo -e "\n${GREEN}All tests completed!${NC}"
+# Production environment
+npm run test:prod
 ```
 
-Save this script as `test.sh` in your project root and make it executable:
+## Test Coverage
+
+Generate and view test coverage report:
+
 ```bash
-chmod +x test.sh
-./test.sh
+# Generate coverage report
+npm run test:coverage
+
+# View coverage report
+open coverage/index.html
 ```

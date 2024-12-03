@@ -5,11 +5,12 @@ This guide helps you diagnose and fix common issues when using the Nostr Auth Mi
 ## Table of Contents
 
 1. [Common Issues](#common-issues)
-2. [Error Messages](#error-messages)
-3. [Configuration Problems](#configuration-problems)
-4. [Integration Issues](#integration-issues)
-5. [Performance Optimization](#performance-optimization)
-6. [Debug Mode](#debug-mode)
+2. [Environment-Specific Issues](#environment-specific-issues)
+3. [Error Messages](#error-messages)
+4. [Configuration Problems](#configuration-problems)
+5. [Integration Issues](#integration-issues)
+6. [Performance Optimization](#performance-optimization)
+7. [Debug Mode](#debug-mode)
 
 ## Common Issues
 
@@ -49,24 +50,161 @@ This guide helps you diagnose and fix common issues when using the Nostr Auth Mi
    };
    ```
 
-### Token Verification Failed
+## Environment-Specific Issues
 
+### Development Mode Issues
+
+#### Hot Reload Not Working
 **Symptom:**
-- "Invalid token" errors
-- Unexpectedly logged out
+- Changes not reflecting immediately
+- Need to manually restart server
 
 **Solution:**
-1. Check token expiration
-2. Verify JWT secret configuration
-3. Ensure token is properly stored:
-   ```typescript
-   // Frontend
-   localStorage.setItem('authToken', token);
+1. Check `NODE_ENV` is set to 'development'
+2. Verify TypeScript compilation:
+   ```bash
+   # Rebuild TypeScript
+   npm run build
    
-   // API calls
-   headers: {
-     'Authorization': `Bearer ${token}`
-   }
+   # Check for compilation errors
+   npm run build -- --noEmit
+   ```
+3. Check file permissions in development directories
+
+#### Local Directory Issues
+**Symptom:**
+- "Directory not found" errors
+- Permission denied in local directories
+
+**Solution:**
+1. Check local directory structure:
+   ```bash
+   # Create required directories
+   mkdir -p logs backups
+   
+   # Check permissions
+   ls -la logs backups
+   ```
+2. Verify current user has write permissions
+
+#### Test Mode Configuration
+**Symptom:**
+- Test features not working
+- Database connection issues in test mode
+
+**Solution:**
+1. Verify test mode is enabled:
+   ```bash
+   # .env
+   TEST_MODE=true
+   NODE_ENV=development
+   ```
+2. Check in-memory database configuration
+3. Verify test data is being loaded
+
+### Production Mode Issues
+
+#### System Directory Permissions
+**Symptom:**
+- "EACCES: permission denied" errors
+- Cannot write to log files
+- Backup creation fails
+
+**Solution:**
+1. Check service user and group:
+   ```bash
+   # Show directory ownership
+   ls -l /opt/nostr-platform/auth
+   ls -l /var/log/nostr-platform/auth
+   
+   # Fix permissions if needed
+   sudo chown -R nostr:nostr /opt/nostr-platform/auth
+   sudo chmod 755 /opt/nostr-platform/auth
+   ```
+
+2. Verify process is running as correct user:
+   ```bash
+   # Check process user
+   ps aux | grep nostr-auth
+   
+   # Start with correct user
+   sudo -u nostr ./scripts/startup.sh
+   ```
+
+#### Service Management
+**Symptom:**
+- Service not starting
+- PM2 process issues
+- Unexpected shutdowns
+
+**Solution:**
+1. Check PM2 process status:
+   ```bash
+   pm2 list
+   pm2 show nostr-auth-middleware
+   ```
+
+2. Verify PM2 logs:
+   ```bash
+   pm2 logs nostr-auth-middleware
+   ```
+
+3. Check system logs:
+   ```bash
+   sudo journalctl -u nostr-auth-middleware
+   ```
+
+#### Log Management
+**Symptom:**
+- Logs not rotating
+- Disk space issues
+- Missing log files
+
+**Solution:**
+1. Check log rotation configuration:
+   ```bash
+   # View log files
+   ls -l /var/log/nostr-platform/auth/
+   
+   # Check disk space
+   df -h /var/log
+   
+   # Manually rotate logs if needed
+   ./scripts/shutdown.sh  # Includes log rotation
+   ```
+
+2. Verify log permissions:
+   ```bash
+   # Fix log directory permissions
+   sudo chown -R nostr:nostr /var/log/nostr-platform/auth
+   sudo chmod 755 /var/log/nostr-platform/auth
+   ```
+
+#### Backup Management
+**Symptom:**
+- Backups not created
+- Old backups not cleaned
+- Backup process fails
+
+**Solution:**
+1. Check backup directory:
+   ```bash
+   ls -l /opt/backups/nostr-platform/auth/
+   ```
+
+2. Verify backup rotation:
+   ```bash
+   # Check old backups
+   find /opt/backups/nostr-platform/auth/ -type f -mtime +60
+   
+   # Manually clean old backups
+   find /opt/backups/nostr-platform/auth/ -type f -mtime +60 -delete
+   ```
+
+3. Test backup creation:
+   ```bash
+   # Create manual backup
+   ./scripts/deploy.sh --backup-only
    ```
 
 ## Error Messages

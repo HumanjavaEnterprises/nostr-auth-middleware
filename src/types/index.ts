@@ -31,25 +31,34 @@ export interface VerificationResult {
 
 export interface SecurityConfig {
   apiKeys?: string[];
-  trustedProxies?: string[];
+  trustedProxies?: string[] | boolean;
   allowedIPs?: string[];
   rateLimitWindowMs?: number;
   rateLimitMaxRequests?: number;
 }
 
 export interface NostrAuthConfig extends SecurityConfig {
-  port?: number;
+  // Server config
+  port: number;
   nodeEnv?: string;
-  corsOrigins?: string | string[];
+  corsOrigins: string[] | "*";
+  // Nostr config
   nostrRelays?: string[];
   privateKey?: string;
   publicKey?: string;
   keyManagementMode?: 'development' | 'production';
+  // Supabase config
   supabaseUrl?: string;
   supabaseKey?: string;
+  // Auth config
   jwtSecret?: string;
   jwtExpiresIn?: string;
   testMode?: boolean;
+  // Optional configs
   eventTimeoutMs?: number;
   challengePrefix?: string;
+}
+
+export interface NostrConfig extends NostrAuthConfig {
+  security?: SecurityConfig;
 }

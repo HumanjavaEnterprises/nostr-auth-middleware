@@ -27,8 +27,8 @@ export const ipWhitelist = (req: Request, res: Response, next: NextFunction) => 
   }
 
   const clientIP = req.ip;
-  if (!allowedIPs.includes(clientIP)) {
-    logger.warn(`Blocked request from unauthorized IP: ${clientIP}`);
+  if (!clientIP || !allowedIPs.includes(clientIP)) {
+    logger.warn(`Blocked request from unauthorized IP: ${clientIP || 'unknown'}`);
     return res.status(403).json({ error: 'Access denied' });
   }
 

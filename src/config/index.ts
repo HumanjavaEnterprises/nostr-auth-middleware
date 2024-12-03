@@ -4,6 +4,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { writeFileSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import dotenv from 'dotenv';
+import { NostrConfig } from '../types/index.js';
 
 const logger = createLogger('Config');
 
@@ -12,34 +13,19 @@ export interface KeyConfig {
   publicKey: string;
 }
 
-export interface NostrConfig {
-  // Server config
-  port: number;
-  nodeEnv?: string;
-  corsOrigins: string[] | "*";
-  // Supabase config
-  supabaseUrl?: string;
-  supabaseKey?: string;
-  // Nostr config
-  nostrRelays?: string[];
-  privateKey?: string;
-  publicKey?: string;
-  keyManagementMode?: 'development' | 'production';
-  // Auth config
-  jwtSecret?: string;
-  jwtExpiresIn?: string;
-  testMode?: boolean;
-  // Optional configs
-  eventTimeoutMs?: number;
-  challengePrefix?: string;
-}
-
 // Initialize config with default values
 export const config: NostrConfig = {
   // Server config
   port: parseInt(process.env.PORT || '3002'),
   nodeEnv: process.env.NODE_ENV || 'development',
   corsOrigins: process.env.CORS_ORIGINS?.split(',') || '*',
+  security: {
+    trustedProxies: process.env.TRUSTED_PROXIES?.split(',') || false,
+    allowedIPs: process.env.ALLOWED_IPS?.split(',') || [],
+    apiKeys: process.env.API_KEYS?.split(',') || [],
+    rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
+    rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+  },
   // Supabase config
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseKey: process.env.SUPABASE_KEY,
@@ -73,6 +59,13 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
     port: parseInt(process.env.PORT || '3002'),
     nodeEnv: process.env.NODE_ENV || 'development',
     corsOrigins: process.env.CORS_ORIGINS?.split(',') || '*',
+    security: {
+      trustedProxies: process.env.TRUSTED_PROXIES?.split(',') || false,
+      allowedIPs: process.env.ALLOWED_IPS?.split(',') || [],
+      apiKeys: process.env.API_KEYS?.split(',') || [],
+      rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
+      rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+    },
     // Supabase config
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseKey: process.env.SUPABASE_KEY,

@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 // Trust proxy if behind a reverse proxy
-app.set('trust proxy', config.trustedProxies || false);
+app.set('trust proxy', config.security?.trustedProxies || false);
 
 // Security Middleware
 app.use(helmet());

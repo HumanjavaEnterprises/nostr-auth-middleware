@@ -1,6 +1,6 @@
 {
   "name": "nostr-auth-enroll",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A comprehensive Nostr authentication and enrollment middleware for web applications, with TypeScript support and Supabase integration",
   "main": "dist/index.js",
   "module": "dist/index.js",

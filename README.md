@@ -16,6 +16,13 @@ A standalone, open-source middleware for handling Nostr authentication and enrol
 - 📊 Detailed Logging and Monitoring
 - 🔐 Automatic Key Management
 
+## Documentation
+
+- [Complete Authentication Flow](docs/authentication-flow.md) - Detailed guide on implementing Nostr authentication
+- [Good to Know](docs/good_to_know.md) - Technical requirements and best practices
+- [API Reference](docs/api-reference.md) - API endpoints and usage
+- [Configuration Guide](docs/configuration.md) - Environment variables and setup
+
 ## Architecture Overview
 
 ```mermaid

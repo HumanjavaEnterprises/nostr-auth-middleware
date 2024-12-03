@@ -3,28 +3,39 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { createLogger } from './utils/logger.js';
 import { NostrAuthMiddleware } from './middleware/nostr-auth.middleware.js';
+import { validateApiKey, ipWhitelist, rateLimiter, securityHeaders } from './middleware/security.middleware.js';
 import { config } from './config/index.js';
 
 const logger = createLogger('Server');
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// Middleware
+// Trust proxy if behind a reverse proxy
+app.set('trust proxy', config.trustedProxies || false);
+
+// Security Middleware
 app.use(helmet());
+app.use(securityHeaders);
+app.use(ipWhitelist);
+app.use(rateLimiter);
+
+// CORS configuration
 app.use(cors({
   origin: config.corsOrigins || '*',
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+  credentials: true
 }));
+
 app.use(express.json());
 
 // Request logging
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.url}`);
+  logger.info(`${req.method} ${req.url} from ${req.ip}`);
   next();
 });
 
-// Health check endpoint
+// Health check endpoint (no API key required)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -50,8 +61,8 @@ const nostrAuth = new NostrAuthMiddleware({
   keyManagementMode: config.keyManagementMode
 });
 
-// Mount Nostr auth routes
-app.use('/auth/nostr', nostrAuth.getRouter());
+// Mount Nostr auth routes with API key validation
+app.use('/auth/nostr', validateApiKey, nostrAuth.getRouter());
 
 // Error handling
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

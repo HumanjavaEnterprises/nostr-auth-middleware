@@ -1,8 +1,7 @@
-import { Event } from 'nostr-tools';
-import { createLogger } from '../utils/logger';
-import { generateEventHash, verifySignature } from '../utils/crypto.utils';
-import { sha256 } from '@noble/hashes/sha256';
-import { bytesToHex } from '@noble/hashes/utils';
+import { NostrEvent } from '../utils/types.js';
+import { createLogger } from '../utils/logger.js';
+import { generateEventHash, verifySignature } from '../utils/crypto.utils.js';
+import { hexToBytes } from '@noble/hashes/utils';
 
 export class NostrEventValidator {
   private readonly logger = createLogger('NostrEventValidator');
@@ -10,29 +9,11 @@ export class NostrEventValidator {
   /**
    * Validate a Nostr event
    */
-  async validateEvent(event: Event): Promise<boolean> {
+  async validateEvent(event: NostrEvent): Promise<boolean> {
     try {
       // Check required fields
       if (!event.id || !event.pubkey || !event.sig || !event.kind || !event.created_at) {
         this.logger.warn('Missing required fields in event');
-        return false;
-      }
-
-      // Validate pubkey format (hex string of length 64)
-      if (!/^[0-9a-f]{64}$/.test(event.pubkey)) {
-        this.logger.warn('Invalid pubkey format');
-        return false;
-      }
-
-      // Validate signature format (hex string of length 128)
-      if (!/^[0-9a-f]{128}$/.test(event.sig)) {
-        this.logger.warn('Invalid signature format');
-        return false;
-      }
-
-      // Validate event ID format (hex string of length 64)
-      if (!/^[0-9a-f]{64}$/.test(event.id)) {
-        this.logger.warn('Invalid event ID format');
         return false;
       }
 
@@ -56,21 +37,6 @@ export class NostrEventValidator {
         }
       }
 
-      // Verify event hash
-      const calculatedHash = generateEventHash(event);
-      if (calculatedHash !== event.id) {
-        this.logger.warn('Event hash verification failed');
-        return false;
-      }
-
-      // Verify signature
-      const eventHash = sha256(Uint8Array.from(Buffer.from(event.id, 'hex')));
-      const isValid = await verifySignature(event.sig, eventHash, event.pubkey);
-      if (!isValid) {
-        this.logger.warn('Event signature verification failed');
-        return false;
-      }
-
       return true;
     } catch (error) {
       this.logger.error('Event validation failed:', error);
@@ -81,7 +47,7 @@ export class NostrEventValidator {
   /**
    * Validate a challenge event
    */
-  async validateChallengeEvent(event: Event): Promise<boolean> {
+  async validateChallengeEvent(event: NostrEvent): Promise<boolean> {
     try {
       if (!await this.validateEvent(event)) {
         return false;
@@ -100,6 +66,30 @@ export class NostrEventValidator {
         return false;
       }
 
+      // Basic validation
+      if (!this.validateBasicEventFormat(event)) {
+        return false;
+      }
+
+      // Validate event hash
+      const hash = generateEventHash(event);
+      if (hash !== event.id) {
+        this.logger.error('Event hash mismatch');
+        return false;
+      }
+
+      // Verify signature
+      const signatureValid = await verifySignature(
+        event.sig,
+        hexToBytes(event.id),
+        event.pubkey
+      );
+
+      if (!signatureValid) {
+        this.logger.error('Invalid signature');
+        return false;
+      }
+
       return true;
     } catch (error) {
       this.logger.error('Challenge event validation failed:', error);
@@ -110,7 +100,7 @@ export class NostrEventValidator {
   /**
    * Validate an enrollment event
    */
-  async validateEnrollmentEvent(event: Event): Promise<boolean> {
+  async validateEnrollmentEvent(event: NostrEvent): Promise<boolean> {
     try {
       if (!await this.validateEvent(event)) {
         return false;
@@ -129,10 +119,55 @@ export class NostrEventValidator {
         return false;
       }
 
+      // Basic validation
+      if (!this.validateBasicEventFormat(event)) {
+        return false;
+      }
+
+      // Validate event hash
+      const hash = generateEventHash(event);
+      if (hash !== event.id) {
+        this.logger.error('Event hash mismatch');
+        return false;
+      }
+
+      // Verify signature
+      const signatureValid = await verifySignature(
+        event.sig,
+        hexToBytes(event.id),
+        event.pubkey
+      );
+
+      if (!signatureValid) {
+        this.logger.error('Invalid signature');
+        return false;
+      }
+
       return true;
     } catch (error) {
       this.logger.error('Enrollment event validation failed:', error);
       return false;
     }
+  }
+
+  private validateBasicEventFormat(event: NostrEvent): boolean {
+    // Check required fields
+    if (!event.kind || !event.created_at || !event.pubkey || !event.id || !event.sig) {
+      this.logger.error('Missing required fields');
+      return false;
+    }
+
+    // Check types
+    if (typeof event.kind !== 'number' ||
+      typeof event.created_at !== 'number' ||
+      typeof event.pubkey !== 'string' ||
+      typeof event.id !== 'string' ||
+      typeof event.sig !== 'string' ||
+      !Array.isArray(event.tags)) {
+      this.logger.error('Invalid field types');
+      return false;
+    }
+
+    return true;
   }
 }

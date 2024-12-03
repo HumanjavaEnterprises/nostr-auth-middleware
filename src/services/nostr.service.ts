@@ -1,30 +1,86 @@
-import { Event } from 'nostr-tools';
-import { NostrAuthConfig, NostrChallenge, NostrEnrollment, NostrProfile, VerificationResult } from '../types';
-import { createLogger } from '../utils/logger';
-import { generateChallenge, generateEventHash, signEvent } from '../utils/crypto.utils';
-import { NostrEventValidator } from '../validators/event.validator';
+import { NostrAuthConfig, NostrEnrollment, NostrProfile, VerificationResult } from '../types/index.js';
+import { createLogger } from '../utils/logger.js';
+import { generateChallenge, generateEventHash, getPublicKey } from '../utils/crypto.utils.js';
+import { NostrEventValidator } from '../validators/event.validator.js';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
+import { hexToBytes } from '@noble/hashes/utils';
+import { NostrEvent, NostrChallenge } from '../utils/types.js';
+import { config } from '../config/index.js';
+import crypto from 'crypto';
 
 export class NostrService {
   private readonly logger = createLogger('NostrService');
-  private readonly challenges: Map<string, NostrChallenge> = new Map();
-  private readonly enrollments: Map<string, NostrEnrollment> = new Map();
   private readonly validator: NostrEventValidator;
   private readonly supabase?: SupabaseClient;
-  private readonly profiles: Map<string, NostrProfile> = new Map();
+  private readonly challenges = new Map<string, NostrChallenge>();
+  private readonly enrollments = new Map<string, NostrEnrollment>();
+  private readonly profiles = new Map<string, NostrProfile>();
+  private serverPubkey: string = '';
+  private readonly CHALLENGE_EXPIRY = 5 * 60 * 1000; // 5 minutes in milliseconds
 
   constructor(private readonly config: NostrAuthConfig) {
     this.validator = new NostrEventValidator();
     this.config.eventTimeoutMs = this.config.eventTimeoutMs || 5000;
     this.config.challengePrefix = this.config.challengePrefix || 'nostr:auth:';
     
+    // Generate a development private key if not provided
+    if (this.config.keyManagementMode === 'development' && !this.config.privateKey) {
+      this.config.privateKey = crypto.randomBytes(32).toString('hex');
+      this.logger.info('Generated development private key');
+    }
+
+    // Initialize server's public key based on key management mode
+    try {
+      const privateKeyBytes = this.getPrivateKeyBytes();
+      this.serverPubkey = getPublicKey(privateKeyBytes);
+      this.logger.info('Server pubkey derived from private key:', this.serverPubkey);
+    } catch (error) {
+      this.logger.error('Failed to derive server pubkey:', error);
+      throw new Error('Failed to derive server pubkey');
+    }
+    
     // Initialize Supabase if configured
     if (this.config.supabaseUrl && this.config.supabaseKey && !this.config.testMode) {
       this.supabase = createClient(this.config.supabaseUrl, this.config.supabaseKey);
       this.logger.info('Supabase client initialized');
     } else {
-      this.logger.warn('Running without Supabase - using in-memory storage');
+      this.logger.warn('Running without Supabase - profiles will not be persisted');
+    }
+  }
+
+  private getPrivateKeyBytes(): Uint8Array {
+    if (!this.config.privateKey) {
+      this.logger.error('Private key not found in config');
+      throw new Error('Server private key not configured');
+    }
+
+    try {
+      // Remove '0x' prefix if present
+      const cleanKey = this.config.privateKey.replace('0x', '');
+      this.logger.debug('Clean private key length:', cleanKey.length);
+      
+      // Ensure the key is 64 characters (32 bytes) long
+      if (cleanKey.length !== 64) {
+        this.logger.error('Invalid private key length:', cleanKey.length);
+        throw new Error('Private key must be 32 bytes (64 hex characters)');
+      }
+      
+      const keyBytes = hexToBytes(cleanKey);
+      this.logger.debug('Private key bytes length:', keyBytes.length);
+      return keyBytes;
+    } catch (error) {
+      this.logger.error('Failed to process private key:', error);
+      throw new Error('Invalid private key format');
+    }
+  }
+
+  private cleanupExpiredChallenges() {
+    const now = Date.now();
+    for (const [id, challenge] of this.challenges.entries()) {
+      if (challenge.expiresAt < now) {
+        this.challenges.delete(id);
+      }
     }
   }
 
@@ -33,85 +89,95 @@ export class NostrService {
    */
   async createChallenge(pubkey: string): Promise<NostrChallenge> {
     try {
-      const challengeString = generateChallenge();
-      const created_at = Math.floor(Date.now() / 1000);
-      const expiresAt = created_at + 300; // 5 minutes
-
-      const event: Event = {
-        kind: 22242, // Challenge event kind
-        created_at,
-        tags: [
-          ['p', pubkey],
-          ['challenge', challengeString]
-        ],
-        content: `${this.config.challengePrefix}${challengeString}`,
-        pubkey: '', // Will be set by the server
-        id: '', // Will be computed
-        sig: '' // Will be signed by the server
-      };
-
-      // Sign the event with server's key
-      event.id = generateEventHash(event);
-      if (this.config.privateKey) {
-        event.sig = await signEvent(event, this.config.privateKey);
+      // Make sure server keys are initialized
+      if (!this.config.privateKey) {
+        this.logger.error('Private key not configured');
+        throw new Error('Server private key not configured');
       }
 
-      return {
-        id: challengeString,
-        event,
-        expiresAt
-      };
+      this.cleanupExpiredChallenges();
+
+      this.logger.info('Creating challenge for pubkey:', pubkey);
+      this.logger.debug('Using private key:', this.config.privateKey.substring(0, 8) + '...');
+      
+      try {
+        const challengeEvent = await generateChallenge(this.config.privateKey, pubkey);
+        this.logger.debug('Generated challenge event:', JSON.stringify(challengeEvent, null, 2));
+        const expiresAt = Date.now() + this.CHALLENGE_EXPIRY;
+
+        const challenge: NostrChallenge = {
+          id: challengeEvent.id,
+          event: challengeEvent,
+          expiresAt
+        };
+
+        this.challenges.set(challenge.id, challenge);
+        return challenge;
+      } catch (error) {
+        this.logger.error('Failed to generate challenge event:', error);
+        throw error;
+      }
     } catch (error) {
       this.logger.error('Failed to create challenge:', error);
-      throw new Error('Failed to create challenge');
+      throw error;
     }
   }
 
   /**
    * Verify a signed challenge response
    */
-  async verifyChallenge(challenge: NostrChallenge, signedEvent: Event): Promise<VerificationResult> {
+  async verifyChallenge(challengeId: string, signedEvent: NostrEvent): Promise<VerificationResult> {
     try {
-      // Check if challenge has expired
-      if (Date.now() / 1000 > challenge.expiresAt) {
-        return {
-          success: false,
-          message: 'Challenge has expired'
-        };
+      const challenge = this.challenges.get(challengeId);
+      if (!challenge) {
+        return { success: false, message: 'Challenge not found or expired' };
       }
 
-      // Validate event format and signature
-      if (!await this.validator.validateChallengeEvent(signedEvent)) {
-        return {
-          success: false,
-          message: 'Invalid event format or signature'
-        };
+      // Verify the signed event
+      const isValid = await this.validator.validateEvent(signedEvent);
+      if (!isValid) {
+        return { success: false, message: 'Invalid signature' };
       }
 
-      // Verify challenge response
-      const challengeTag = signedEvent.tags.find(t => t[0] === 'challenge');
-      if (!challengeTag || challengeTag[1] !== challenge.id) {
-        return {
-          success: false,
-          message: 'Invalid challenge response'
-        };
+      // Verify challenge matches
+      const expectedContent = `nostr:auth:${challengeId}`;
+      if (signedEvent.content !== expectedContent) {
+        return { success: false, message: 'Challenge mismatch' };
       }
 
-      // Fetch profile if verification successful
-      const profile = await this.fetchProfile(signedEvent.pubkey);
+      // Generate JWT token
+      const token = this.generateToken(signedEvent.pubkey);
+
+      // Get or create profile
+      const profile = await this.getOrCreateProfile(signedEvent.pubkey);
 
       return {
         success: true,
-        profile,
-        token: this.generateToken(signedEvent.pubkey)
+        token,
+        profile
       };
     } catch (error) {
-      this.logger.error('Challenge verification failed:', error);
-      return {
-        success: false,
-        message: 'Verification failed'
-      };
+      this.logger.error('Failed to verify challenge:', error);
+      return { success: false, message: 'Verification failed' };
     }
+  }
+
+  private async getOrCreateProfile(pubkey: string): Promise<NostrProfile> {
+    // Check in-memory cache first
+    let profile = this.profiles.get(pubkey);
+    if (profile) {
+      return profile;
+    }
+
+    // Create basic profile
+    profile = {
+      pubkey,
+      name: `nostr:${pubkey.substring(0, 8)}`,
+    };
+
+    // Store in memory
+    this.profiles.set(pubkey, profile);
+    return profile;
   }
 
   /**
@@ -119,43 +185,48 @@ export class NostrService {
    */
   async startEnrollment(pubkey: string): Promise<NostrEnrollment> {
     try {
+      if (!this.config.privateKey) {
+        throw new Error('Server private key not configured');
+      }
+
       const created_at = Math.floor(Date.now() / 1000);
       const expiresAt = created_at + 300; // 5 minutes
 
-      const event: Event = {
+      const event: NostrEvent = {
         kind: 22243, // Enrollment event kind
         created_at,
         tags: [
           ['p', pubkey],
-          ['action', 'enroll']
+          ['expires_at', expiresAt.toString()]
         ],
-        content: 'Enrollment verification request',
-        pubkey: '', // Will be set by the server
-        id: '', // Will be computed
-        sig: '' // Will be signed by the server
+        content: 'Enrollment request',
+        pubkey: this.serverPubkey,
+        id: '',
+        sig: ''
       };
 
-      // Sign the event with server's key
-      event.id = generateEventHash(event);
-      if (this.config.privateKey) {
-        event.sig = await signEvent(event, this.config.privateKey);
-      }
-
-      const enrollment: NostrEnrollment = this.createEnrollment(event);
-
+      const enrollment = this.createEnrollment(event);
       this.enrollments.set(pubkey, enrollment);
       return enrollment;
     } catch (error) {
       this.logger.error('Failed to start enrollment:', error);
-      throw new Error('Failed to start enrollment');
+      throw error;
     }
   }
 
   /**
    * Verify enrollment response
    */
-  async verifyEnrollment(signedEvent: Event): Promise<VerificationResult> {
+  async verifyEnrollment(signedEvent: NostrEvent): Promise<VerificationResult> {
     try {
+      const enrollment = this.enrollments.get(signedEvent.pubkey);
+      if (!enrollment) {
+        return {
+          success: false,
+          message: 'No enrollment found'
+        };
+      }
+
       // Validate event format and signature
       if (!await this.validator.validateEnrollmentEvent(signedEvent)) {
         return {
@@ -164,32 +235,9 @@ export class NostrService {
         };
       }
 
-      const enrollment = this.enrollments.get(signedEvent.pubkey);
-      if (!enrollment) {
-        return {
-          success: false,
-          message: 'No enrollment found for this pubkey'
-        };
-      }
+      // Store enrollment if verification successful
+      await this.storeEnrollment(signedEvent.pubkey);
 
-      if (Date.now() / 1000 > enrollment.expiresAt) {
-        this.enrollments.delete(signedEvent.pubkey);
-        return {
-          success: false,
-          message: 'Enrollment has expired'
-        };
-      }
-
-      // Store enrollment in storage
-      const stored = await this.storeEnrollment(signedEvent.pubkey);
-      if (!stored) {
-        return {
-          success: false,
-          message: 'Failed to store enrollment'
-        };
-      }
-
-      this.enrollments.delete(signedEvent.pubkey);
       return {
         success: true,
         token: this.generateToken(signedEvent.pubkey)
@@ -207,63 +255,56 @@ export class NostrService {
    * Fetch user profile from storage
    */
   async fetchProfile(pubkey: string): Promise<NostrProfile> {
-    try {
-      if (this.supabase) {
-        const { data, error } = await this.supabase
-          .from('nostr_profiles')
-          .select('*')
-          .eq('pubkey', pubkey)
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        return data || { pubkey };
-      } else {
-        // Use in-memory storage for testing
-        return this.profiles.get(pubkey) || { pubkey };
-      }
-    } catch (error) {
-      this.logger.error('Failed to fetch profile:', error);
-      return { pubkey };
+    const profile = this.profiles.get(pubkey);
+    if (profile) {
+      return profile;
     }
+
+    if (this.supabase) {
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .select('*')
+        .eq('pubkey', pubkey)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        this.profiles.set(pubkey, data);
+        return data;
+      }
+    }
+
+    return { pubkey };
   }
 
   /**
    * Store enrollment in storage
    */
-  private async storeEnrollment(pubkey: string): Promise<boolean> {
-    try {
-      if (this.supabase) {
-        const { error } = await this.supabase
-          .from('nostr_enrollments')
-          .insert({
-            pubkey,
-            enrolled_at: new Date().toISOString()
-          });
+  async storeEnrollment(pubkey: string): Promise<boolean> {
+    if (this.supabase) {
+      const { error } = await this.supabase
+        .from('enrollments')
+        .insert([{ pubkey }]);
 
-        if (error) {
-          throw error;
-        }
-      } else {
-        // Use in-memory storage for testing
-        this.profiles.set(pubkey, { 
-          pubkey,
-          enrolled_at: new Date().toISOString()
-        });
+      if (error) {
+        throw error;
       }
-      return true;
-    } catch (error) {
-      this.logger.error('Failed to store enrollment:', error);
-      return false;
     }
+
+    return true;
   }
 
-  private createEnrollment(signedEvent: Event): NostrEnrollment {
+  /**
+   * Create enrollment object
+   */
+  createEnrollment(signedEvent: NostrEvent): NostrEnrollment {
     return {
       pubkey: signedEvent.pubkey,
-      verificationEvent: signedEvent,
+      event: signedEvent,
+      createdAt: Date.now(),
       expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
       enrolled_at: new Date().toISOString()
     };
@@ -272,19 +313,15 @@ export class NostrService {
   /**
    * Generate a JWT token for the authenticated user
    */
-  private generateToken(pubkey: string): string {
-    if (!this.config.jwtSecret && !this.config.testMode) {
+  generateToken(pubkey: string): string {
+    if (!this.config.jwtSecret) {
       throw new Error('JWT secret is required');
     }
 
-    if (this.config.testMode) {
-      return `test_token_${pubkey}`;
-    }
-
-    return jwt.sign(
-      { pubkey },
-      this.config.jwtSecret!,
-      { expiresIn: '24h' }
-    );
+    return jwt.sign({ pubkey }, this.config.jwtSecret, {
+      expiresIn: this.config.jwtExpiresIn || '1h'
+    });
   }
 }
+
+export const nostrService = new NostrService(config);

@@ -1,114 +1,120 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { NostrService } from '../services/nostr.service';
-import { NostrEventValidator } from '../validators/event.validator';
-import { NostrAuthConfig, NostrChallenge, VerificationResult } from '../types';
-import { createLogger } from '../utils/logger';
+import express, { Router, Request, Response, NextFunction } from 'express';
+import { NostrService } from '../services/nostr.service.js';
+import { createLogger } from '../utils/logger.js';
+import { NostrChallenge, NostrAuthConfig } from '../types/index.js';
+
+const logger = createLogger('NostrAuthMiddleware');
 
 export class NostrAuthMiddleware {
   private readonly router: Router;
   private readonly nostrService: NostrService;
-  private readonly validator: NostrEventValidator;
-  private readonly logger = createLogger('NostrAuthMiddleware');
-  private readonly challenges: Map<string, NostrChallenge> = new Map();
 
   constructor(private readonly config: NostrAuthConfig) {
     this.router = Router();
     this.nostrService = new NostrService(config);
-    this.validator = new NostrEventValidator();
     this.setupRoutes();
   }
 
   private setupRoutes(): void {
     this.router.post('/challenge', this.handleChallenge.bind(this));
-    this.router.post('/verify', this.handleVerification.bind(this));
-    this.router.post('/enroll', this.handleEnrollment.bind(this));
-    this.router.post('/enroll/verify', this.handleEnrollmentVerification.bind(this));
+    this.router.post('/verify', this.handleVerify.bind(this));
+    this.router.post('/enroll', this.handleEnroll.bind(this));
+    this.router.post('/enroll/verify', this.handleVerifyEnrollment.bind(this));
     this.router.get('/profile/:pubkey', this.handleProfileFetch.bind(this));
   }
 
-  private async handleChallenge(req: Request, res: Response): Promise<void> {
+  private async handleChallenge(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { pubkey } = req.body;
       if (!pubkey) {
-        res.status(400).json({ error: 'Public key is required' });
+        res.status(400).json({ error: 'Missing pubkey' });
         return;
       }
 
+      logger.info('Creating challenge for pubkey:', pubkey);
       const challenge = await this.nostrService.createChallenge(pubkey);
-      this.challenges.set(challenge.id, challenge);
+      logger.info('Challenge created:', challenge);
 
-      res.json({ 
-        challengeId: challenge.id,
-        event: challenge.event 
+      // Format response to match test expectations
+      res.json({
+        event: challenge.event,
+        challengeId: challenge.id
       });
     } catch (error) {
-      this.logger.error('Challenge creation failed:', error);
+      logger.error('Failed to create challenge:', error);
       res.status(500).json({ error: 'Failed to create challenge' });
     }
   }
 
-  private async handleVerification(req: Request, res: Response): Promise<void> {
+  private async handleVerify(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { challengeId, signedEvent } = req.body;
+
       if (!challengeId || !signedEvent) {
-        res.status(400).json({ error: 'Challenge ID and signed event are required' });
+        res.status(400).json({ error: 'Missing challengeId or signedEvent' });
         return;
       }
 
-      const challenge = this.challenges.get(challengeId);
-      if (!challenge) {
-        res.status(404).json({ error: 'Challenge not found' });
-        return;
-      }
-
-      const result = await this.nostrService.verifyChallenge(challenge, signedEvent);
+      logger.info('Verifying challenge:', challengeId);
+      const result = await this.nostrService.verifyChallenge(challengeId, signedEvent);
+      
       if (result.success) {
-        this.challenges.delete(challengeId);
+        res.json({
+          success: true,
+          token: result.token,
+          profile: result.profile
+        });
+      } else {
+        res.status(401).json({ error: 'Invalid signature' });
       }
-
-      res.json(result);
     } catch (error) {
-      this.logger.error('Verification failed:', error);
-      res.status(500).json({ error: 'Verification failed' });
+      logger.error('Failed to verify challenge:', error);
+      res.status(500).json({ error: 'Failed to verify challenge' });
     }
   }
 
-  private async handleEnrollment(req: Request, res: Response): Promise<void> {
+  private async handleEnroll(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { pubkey } = req.body;
       if (!pubkey) {
-        res.status(400).json({ error: 'Public key is required' });
+        res.status(400).json({ error: 'Missing pubkey' });
         return;
       }
 
+      logger.info('Starting enrollment for pubkey:', pubkey);
       const enrollment = await this.nostrService.startEnrollment(pubkey);
-      res.json({
-        verificationEvent: enrollment.verificationEvent,
-        expiresAt: enrollment.expiresAt
-      });
+      logger.info('Enrollment started:', enrollment);
+
+      res.json({ enrollment });
     } catch (error) {
-      this.logger.error('Enrollment failed:', error);
+      logger.error('Failed to start enrollment:', error);
       res.status(500).json({ error: 'Failed to start enrollment' });
     }
   }
 
-  private async handleEnrollmentVerification(req: Request, res: Response): Promise<void> {
+  private async handleVerifyEnrollment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { signedEvent } = req.body;
       if (!signedEvent) {
-        res.status(400).json({ error: 'Signed event is required' });
+        res.status(400).json({ error: 'Missing signedEvent' });
         return;
       }
 
+      logger.info('Verifying enrollment:', signedEvent);
       const result = await this.nostrService.verifyEnrollment(signedEvent);
+      if (!result.success) {
+        res.status(401).json({ error: result.message });
+        return;
+      }
+
       res.json(result);
     } catch (error) {
-      this.logger.error('Enrollment verification failed:', error);
-      res.status(500).json({ error: 'Enrollment verification failed' });
+      logger.error('Failed to verify enrollment:', error);
+      res.status(500).json({ error: 'Failed to verify enrollment' });
     }
   }
 
-  private async handleProfileFetch(req: Request, res: Response): Promise<void> {
+  private async handleProfileFetch(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { pubkey } = req.params;
       if (!pubkey) {
@@ -119,7 +125,7 @@ export class NostrAuthMiddleware {
       const profile = await this.nostrService.fetchProfile(pubkey);
       res.json(profile);
     } catch (error) {
-      this.logger.error('Profile fetch failed:', error);
+      logger.error('Profile fetch failed:', error);
       res.status(500).json({ error: 'Failed to fetch profile' });
     }
   }

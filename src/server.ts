@@ -1,13 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { createLogger } from './utils/logger';
-import { NostrAuthMiddleware } from './middleware/nostr-auth.middleware';
-import { config } from './config';
+import { createLogger } from './utils/logger.js';
+import { NostrAuthMiddleware } from './middleware/nostr-auth.middleware.js';
+import { config } from './config/index.js';
 
 const logger = createLogger('Server');
 const app = express();
-const PORT = process.env.PORT || 3002; // Using 3002 as default since 3000 and 3001 are taken
+const PORT = process.env.PORT || 3002;
 
 // Middleware
 app.use(helmet());
@@ -31,24 +31,23 @@ app.get('/health', (req, res) => {
 
 // Initialize Nostr auth middleware
 const nostrAuth = new NostrAuthMiddleware({
-  // Required config
   port: config.port,
   nodeEnv: config.nodeEnv,
   corsOrigins: config.corsOrigins,
-  // Nostr specific config
-  nostrRelays: config.nostrRelays || [
+  nostrRelays: config.nostrRelays ?? [
     'wss://relay.maiqr.app',
     'wss://relay.damus.io',
     'wss://relay.nostr.band'
   ],
   eventTimeoutMs: 5000,
   challengePrefix: 'nostr:auth:',
-  // Optional auth config
   supabaseUrl: config.supabaseUrl,
   supabaseKey: config.supabaseKey,
   jwtSecret: config.jwtSecret,
   testMode: config.testMode,
-  privateKey: config.privateKey
+  privateKey: config.privateKey,
+  publicKey: config.publicKey,
+  keyManagementMode: config.keyManagementMode
 });
 
 // Mount Nostr auth routes
@@ -64,5 +63,5 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 app.listen(PORT, () => {
   logger.info(`Nostr Auth Middleware running on port ${PORT}`);
   logger.info(`Connected to Supabase at ${config.supabaseUrl}`);
-  logger.info(`Using Nostr relays: ${config.nostrRelays.join(', ')}`);
+  logger.info(`Using Nostr relays: ${config.nostrRelays?.join(', ') ?? 'default relays'}`);
 });

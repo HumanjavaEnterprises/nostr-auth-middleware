@@ -90,7 +90,7 @@ if [ -d $DEPLOY_DIR ]; then
 fi
 
 echo -e "${GREEN}Cloning latest version...${NC}"
-git clone https://github.com/YourUsername/nostr-auth.enroll-middleware.git $DEPLOY_DIR
+git clone https://github.com/maiqr/nostr-auth-middleware.git $DEPLOY_DIR
 cd $DEPLOY_DIR
 git checkout main
 

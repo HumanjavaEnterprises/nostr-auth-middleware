@@ -1,30 +1,33 @@
-import { Event } from 'nostr-tools';
+import { NostrEvent } from '../utils/types.js';
 
 export interface NostrAuthConfig {
   port: number;
-  nodeEnv: string;
-  corsOrigins: string | string[];
-  nostrRelays: string[];
-  // Make these optional for test mode
+  corsOrigins: string[] | "*";
+  nostrRelays?: string[];
+  nodeEnv?: string;
+  privateKey?: string;
+  publicKey?: string;
+  keyManagementMode?: 'development' | 'production';
   supabaseUrl?: string;
   supabaseKey?: string;
   jwtSecret?: string;
+  jwtExpiresIn?: string;
   testMode?: boolean;
   // Optional configs
   eventTimeoutMs?: number;
   challengePrefix?: string;
-  privateKey?: string;  // Server's private key for signing events
 }
 
 export interface NostrChallenge {
   id: string;
-  event: Event;
+  event: NostrEvent;
   expiresAt: number;
 }
 
 export interface NostrEnrollment {
   pubkey: string;
-  verificationEvent: Event;
+  event: NostrEvent;
+  createdAt: number;
   expiresAt: number;
   enrolled_at: string;
 }
@@ -42,14 +45,4 @@ export interface VerificationResult {
   message?: string;
   profile?: NostrProfile;
   token?: string;
-}
-
-export interface NostrEvent extends Event {
-  kind: number;
-  created_at: number;
-  content: string;
-  tags: string[][];
-  pubkey: string;
-  id: string;
-  sig: string;
 }

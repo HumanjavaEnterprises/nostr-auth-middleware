@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
-import { createLogger } from './utils/logger';
+import { createLogger } from './utils/logger.js';
+import { hexToBytes } from '@noble/hashes/utils';
+import { getPublicKey } from './utils/crypto.utils.js';
 
 dotenv.config();
 
@@ -11,6 +13,26 @@ function getEnvWithWarning(key: string): string | undefined {
     logger.warn(`Missing environment variable: ${key} - Some features may be limited`);
   }
   return value;
+}
+
+function validatePrivateKey(key: string | undefined): string {
+  if (!key) {
+    throw new Error('SERVER_PRIVATE_KEY is required');
+  }
+  try {
+    // Validate key format
+    if (!/^[0-9a-f]{64}$/.test(key)) {
+      throw new Error('SERVER_PRIVATE_KEY must be a 64-character hex string');
+    }
+    // Test key derivation
+    const privateKeyBytes = hexToBytes(key);
+    const pubkey = getPublicKey(privateKeyBytes);
+    logger.info('Server keys validated. Public key:', pubkey);
+    return key;
+  } catch (error) {
+    logger.error('Invalid SERVER_PRIVATE_KEY:', error);
+    throw error;
+  }
 }
 
 export const config = {
@@ -35,8 +57,12 @@ export const config = {
   jwtSecret: getEnvWithWarning('JWT_SECRET'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
   
-  // Server key pair - optional
-  privateKey: process.env.SERVER_PRIVATE_KEY,
+  // Key Management Mode
+  keyManagementMode: (process.env.KEY_MANAGEMENT_MODE === 'production' ? 'production' : 'development') as 'development' | 'production',
+  
+  // Server key pair - required and validated
+  privateKey: validatePrivateKey(process.env.SERVER_PRIVATE_KEY),
+  publicKey: process.env.SERVER_PUBLIC_KEY,
   
   // Testing mode - disables Supabase and JWT requirements
   testMode: process.env.TEST_MODE === 'true',

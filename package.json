@@ -1,5 +1,5 @@
 {
-  "name": "nostr-auth-enroll",
+  "name": "@humanjavaenterprises/nostr-auth-middleware",
   "version": "0.2.1",
   "description": "A comprehensive Nostr authentication and enrollment middleware for web applications, with TypeScript support and Supabase integration",
   "main": "dist/index.js",
@@ -93,7 +93,7 @@
     "@jest/globals": "^29.7.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
-    "@types/jest": "^29.5.11",
+    "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.17.9",
     "@typescript-eslint/eslint-plugin": "^6.17.0",

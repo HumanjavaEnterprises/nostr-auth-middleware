@@ -2,6 +2,12 @@
 
 A focused, security-first authentication middleware for Nostr applications.
 
+⚠️ **Important Security Notice**
+
+This library handles cryptographic keys and authentication tokens that are critical for securing your Nostr application and user data. Any private keys (`nsec`) or authentication tokens must be stored and managed with the utmost security and care.
+
+Developers using this middleware must inform their users about the critical nature of managing private keys and tokens. It is the user's responsibility to securely store and manage these credentials. The library and its authors disclaim any responsibility or liability for lost keys, compromised tokens, or data resulting from mismanagement.
+
 ## Project Philosophy
 
 This middleware follows key principles that promote security, auditability, and simplicity:

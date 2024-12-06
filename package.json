@@ -1,6 +1,6 @@
 {
   "name": "@humanjavaenterprises/nostr-auth-middleware",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "A comprehensive Nostr authentication and enrollment middleware for web applications, with TypeScript support and Supabase integration",
   "main": "dist/index.js",
   "module": "dist/index.js",

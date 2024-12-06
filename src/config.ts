@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
-import { createLogger } from './utils/logger.js';
+import { createLogger } from './utils/logger';
 import { hexToBytes } from '@noble/hashes/utils';
-import { getPublicKey } from './utils/crypto.utils.js';
+import { getPublicKey } from './utils/crypto.utils';
 
 dotenv.config();
 

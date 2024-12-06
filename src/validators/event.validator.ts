@@ -1,6 +1,6 @@
-import { NostrEvent } from '../utils/types.js';
-import { createLogger } from '../utils/logger.js';
-import { generateEventHash, verifySignature } from '../utils/crypto.utils.js';
+import { NostrEvent } from '../utils/types';
+import { createLogger } from '../utils/logger';
+import { generateEventHash, verifySignature } from '../utils/crypto.utils';
 import { hexToBytes } from '@noble/hashes/utils';
 
 export class NostrEventValidator {

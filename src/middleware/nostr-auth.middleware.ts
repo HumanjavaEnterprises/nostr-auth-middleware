@@ -1,7 +1,7 @@
 import express, { Router, Request, Response, NextFunction } from 'express';
-import { NostrService } from '../services/nostr.service.js';
-import { createLogger } from '../utils/logger.js';
-import { NostrChallenge, NostrAuthConfig } from '../types/index.js';
+import { NostrService } from '../services/nostr.service';
+import { createLogger } from '../utils/logger';
+import { NostrChallenge, NostrAuthConfig } from '../types';
 
 const logger = createLogger('NostrAuthMiddleware');
 

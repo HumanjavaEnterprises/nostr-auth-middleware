@@ -1,12 +1,12 @@
-import { NostrAuthConfig, NostrEnrollment, NostrProfile, VerificationResult } from '../types/index.js';
-import { createLogger } from '../utils/logger.js';
-import { generateChallenge, generateEventHash, getPublicKey } from '../utils/crypto.utils.js';
-import { NostrEventValidator } from '../validators/event.validator.js';
+import { NostrAuthConfig, NostrEnrollment, NostrProfile, VerificationResult } from '../types';
+import { createLogger } from '../utils/logger';
+import { generateChallenge, generateEventHash, getPublicKey } from '../utils/crypto.utils';
+import { NostrEventValidator } from '../validators/event.validator';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { hexToBytes } from '@noble/hashes/utils';
-import { NostrEvent, NostrChallenge } from '../utils/types.js';
-import { config } from '../config/index.js';
+import { NostrEvent, NostrChallenge } from '../utils/types';
+import { config } from '../config';
 import crypto from 'crypto';
 
 export class NostrService {
@@ -25,9 +25,9 @@ export class NostrService {
     this.config.challengePrefix = this.config.challengePrefix || 'nostr:auth:';
     
     // Generate a development private key if not provided
-    if (this.config.keyManagementMode === 'development' && !this.config.privateKey) {
+    if ((this.config.keyManagementMode === 'development' || this.config.testMode) && !this.config.privateKey) {
       this.config.privateKey = crypto.randomBytes(32).toString('hex');
-      this.logger.info('Generated development private key');
+      this.logger.info('Generated development/test private key');
     }
 
     // Initialize server's public key based on key management mode
@@ -40,8 +40,8 @@ export class NostrService {
       throw new Error('Failed to derive server pubkey');
     }
     
-    // Initialize Supabase if configured
-    if (this.config.supabaseUrl && this.config.supabaseKey && !this.config.testMode) {
+    // Initialize Supabase if configured and not in test mode
+    if (!this.config.testMode && this.config.supabaseUrl && this.config.supabaseKey) {
       this.supabase = createClient(this.config.supabaseUrl, this.config.supabaseKey);
       this.logger.info('Supabase client initialized');
     } else {
@@ -323,5 +323,3 @@ export class NostrService {
     });
   }
 }
-
-export const nostrService = new NostrService(config);

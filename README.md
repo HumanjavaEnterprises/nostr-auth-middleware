@@ -61,10 +61,44 @@ This middleware follows key principles that promote security, auditability, and 
 - [Architecture Guide](docs/architecture-guide.md) - Understanding the service architecture
 - [Key Management Guide](docs/key-management.md) - Comprehensive key management documentation
 - [Deployment Guide](docs/deployment-guide.md) - Environment-specific deployment instructions
+- [Getting Started](docs/getting-started.md) - Quick start guide
 - [Authentication Flow](docs/authentication-flow.md) - Detailed authentication process
 - [Troubleshooting Guide](docs/troubleshooting.md) - Common issues and solutions
 - [API Documentation](docs/api.md) - API endpoints and usage
 - [Security Guide](docs/security.md) - Security best practices and considerations
+- [Automated Tests](docs/automated-tests.md) - Comprehensive test suite documentation
+
+## Testing
+
+The middleware includes comprehensive test coverage for all core functionality:
+
+- ✅ Challenge Generation & Verification
+- ✅ Profile Fetching
+- ✅ Enrollment & Verification
+- ✅ Error Handling
+- ✅ Router Integration
+
+Current test coverage: 94.8%
+
+For detailed information about the test suite, please see our [Automated Tests Documentation](docs/automated-tests.md).
+
+To run the tests:
+
+```bash
+npm test
+```
+
+For live testing with actual Nostr relays:
+
+```bash
+npm run test:live
+```
+
+For testing authentication flow:
+
+```bash
+npm run test:auth
+```
 
 ## Quick Start
 

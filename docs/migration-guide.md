@@ -22,8 +22,18 @@ Before starting the migration:
 
 2. Install the package:
    ```bash
-   npm install @maiqr/nostr-auth-enroll
+   npm install @maiqr/nostr-auth-enroll @humanjavaenterprises/nostr-crypto-utils @humanjavaenterprises/nostr-nsec-seedphrase-library
    ```
+
+## Dependencies
+
+### Core Dependencies
+
+The middleware now uses standardized cryptographic operations:
+- `nostr-crypto-utils`: Provides core cryptographic operations
+- `nostr-nsec-seedphrase-library`: Handles seedphrase-based key management
+
+These packages ensure consistent cryptographic implementations across all your Nostr applications.
 
 ## Backend Migration
 

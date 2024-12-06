@@ -57,6 +57,35 @@ The key management system is designed according to our core architectural princi
 - **Format**: `nostr_[environment]_[service]_[timestamp]`
 - **Validation**: SHA-256 hash stored in configuration
 
+## Cryptographic Operations
+
+### Standardized Crypto Utilities
+
+The middleware now uses standardized cryptographic operations from our official packages:
+
+- `@humanjavaenterprises/nostr-crypto-utils`: Core cryptographic operations
+- `@humanjavaenterprises/nostr-nsec-seedphrase-library`: Seedphrase-based key management
+
+These packages ensure:
+- Consistent cryptographic implementations across all Nostr projects
+- Standardized key generation and management
+- Improved security through well-tested, audited code
+- Better maintainability and updates
+
+### Development Mode
+
+In development mode, the middleware uses seedphrase-based key generation for predictable testing environments:
+
+```typescript
+import { generateKeyPair } from '@humanjavaenterprises/nostr-crypto-utils';
+import { generateFromSeed } from '@humanjavaenterprises/nostr-nsec-seedphrase-library';
+
+// Development mode uses deterministic key generation
+const keyPair = process.env.NODE_ENV === 'development' 
+  ? generateFromSeed('development-seed-phrase')
+  : generateKeyPair();
+```
+
 ## Environment-Specific Key Management
 
 ### Development Environment

@@ -33,7 +33,7 @@ export {
 export { NostrService } from './services/nostr.service.js';
 
 // Validators
-export { NostrEventValidator } from './validators/event.validator.js';
+export { validateEvent, validateChallengeEvent, validateEnrollmentEvent } from './validators/event.validator.js';
 
 // Configuration
 export { config } from './config.js';

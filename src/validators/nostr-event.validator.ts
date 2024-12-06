@@ -8,7 +8,7 @@ export class NostrEventValidator {
     }
 
     try {
-      return await verifySignature(event.sig, event.id, event.pubkey);
+      return await verifySignature(event);
     } catch (error) {
       return false;
     }

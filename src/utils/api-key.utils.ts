@@ -1,84 +1,69 @@
 import { createHash, randomBytes } from 'crypto';
-import { hexToBytes } from '@noble/hashes/utils';
-import { getPublicKey } from './crypto.utils.js';
-import { createLogger } from './logger.js';
+import { createLogger } from './logger';
 
-const logger = createLogger('ApiKeyUtils');
+const logger = createLogger('APIKeyUtils');
 
-interface ApiKeyParts {
-  prefix: string;
-  serverPubkey: string;
-  secret: string;
-}
-
-/**
- * Generate a deterministic API key from a server's private key
- * Format: maqr_[first 8 chars of pubkey]_[32 chars of deterministic secret]
- */
-export function generateApiKey(privateKey: string): string {
+export function generateApiKey(length: number = 32): string {
   try {
-    // Get the server's public key
-    const privateKeyBytes = hexToBytes(privateKey);
-    const publicKey = getPublicKey(privateKeyBytes);
-    
-    // Create a deterministic secret using the private key
-    const secret = createHash('sha256')
-      .update(privateKeyBytes)
-      .digest('hex')
-      .slice(0, 32); // Take first 32 chars
-    
-    return formatApiKey({
-      prefix: 'maqr',
-      serverPubkey: publicKey.slice(0, 8),
-      secret
-    });
+    return randomBytes(length).toString('hex');
   } catch (error) {
-    logger.error('Failed to generate API key:', error);
+    logger.error('Error generating API key:', { error: error instanceof Error ? error.message : String(error) });
     throw new Error('Failed to generate API key');
   }
 }
 
-/**
- * Generate a new random API key
- * Useful for creating additional keys that aren't tied to the server identity
- */
-export function generateRandomApiKey(): string {
-  const randomSecret = randomBytes(16).toString('hex');
-  const randomPubkey = randomBytes(4).toString('hex');
-  
-  return formatApiKey({
-    prefix: 'maqr',
-    serverPubkey: randomPubkey,
-    secret: randomSecret
-  });
+export function generateApiKeyForUser(userId: string, secret: string): string {
+  try {
+    const timestamp = Date.now().toString();
+    const data = `${userId}:${timestamp}:${secret}`;
+    const hash = createHash('sha256').update(data).digest('hex');
+    return `${userId}_${timestamp}_${hash.substring(0, 8)}`;
+  } catch (error) {
+    logger.error('Error generating API key for user:', { error: error instanceof Error ? error.message : String(error) });
+    throw new Error('Failed to generate API key for user');
+  }
 }
 
-/**
- * Format API key parts into a single string
- */
-function formatApiKey(parts: ApiKeyParts): string {
-  return `${parts.prefix}_${parts.serverPubkey}_${parts.secret}`;
+export function hashApiKey(apiKey: string): string {
+  try {
+    return createHash('sha256')
+      .update(apiKey)
+      .digest('hex');
+  } catch (error) {
+    logger.error('Error hashing API key:', { error: error instanceof Error ? error.message : String(error) });
+    throw new Error('Failed to hash API key');
+  }
 }
 
-/**
- * Parse an API key into its component parts
- * Returns null if the key format is invalid
- */
-export function parseApiKey(apiKey: string): ApiKeyParts | null {
-  const parts = apiKey.split('_');
-  if (parts.length !== 3) return null;
-  
-  const [prefix, serverPubkey, secret] = parts;
-  if (prefix !== 'maqr') return null;
-  if (serverPubkey.length !== 8) return null;
-  if (secret.length !== 32) return null;
-  
-  return { prefix, serverPubkey, secret };
+export function verifyApiKey(apiKey: string, hashedApiKey: string): boolean {
+  try {
+    const hash = hashApiKey(apiKey);
+    return hash === hashedApiKey;
+  } catch (error) {
+    logger.error('Error verifying API key:', { error: error instanceof Error ? error.message : String(error) });
+    return false;
+  }
 }
 
-/**
- * Validate an API key format
- */
+export function parseApiKey(apiKey: string): { userId: string; timestamp: string; hash: string } | null {
+  try {
+    const parts = apiKey.split('_');
+    if (parts.length !== 3) {
+      return null;
+    }
+
+    const [userId, timestamp, hash] = parts;
+    if (!userId || !timestamp || !hash) {
+      return null;
+    }
+
+    return { userId, timestamp, hash };
+  } catch (error) {
+    logger.error('Error parsing API key:', { error: error instanceof Error ? error.message : String(error) });
+    return null;
+  }
+}
+
 export function isValidApiKeyFormat(apiKey: string): boolean {
   return parseApiKey(apiKey) !== null;
 }

@@ -1,19 +1,29 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
-export default {
-  preset: 'ts-jest',
+const config = {
+  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '@humanjavaenterprises/nostr-crypto-utils': '<rootDir>/node_modules/@humanjavaenterprises/nostr-crypto-utils/dist/index.js'
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       useESM: true,
     }],
   },
-  testMatch: ['**/__tests__/**/*.test.ts'],
-  moduleFileExtensions: ['ts', 'js'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(@humanjavaenterprises|@noble)/.*)'
+  ],
+  testMatch: [
+    '**/__tests__/**/*.test.ts',
+    '**/?(*.)+(spec|test).ts'
+  ],
   collectCoverage: true,
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov']
-}
+  coverageReporters: ['text', 'lcov'],
+  moduleFileExtensions: ['ts', 'js']
+};
+
+export default config;

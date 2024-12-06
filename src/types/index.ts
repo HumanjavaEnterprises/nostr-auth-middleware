@@ -1,9 +1,14 @@
-import { NostrEvent } from '../utils/types.js';
+import { NostrEvent } from '../interfaces/nostr.interface.js';
+
+export { NostrEvent };
 
 export interface NostrChallenge {
   id: string;
+  pubkey: string;
+  challenge: string;
   event: NostrEvent;
-  expiresAt: number;
+  created_at: number;
+  expires_at: number;
 }
 
 export interface NostrEnrollment {
@@ -24,9 +29,11 @@ export interface NostrProfile {
 
 export interface VerificationResult {
   success: boolean;
+  error?: string;
   message?: string;
   profile?: NostrProfile;
   token?: string;
+  pubkey?: string;
 }
 
 export interface SecurityConfig {
@@ -41,22 +48,24 @@ export interface NostrAuthConfig extends SecurityConfig {
   // Server config
   port: number;
   nodeEnv?: string;
-  corsOrigins: string[] | "*";
+  corsOrigins?: string[] | "*";
+  
   // Nostr config
   nostrRelays?: string[];
   privateKey?: string;
   publicKey?: string;
-  keyManagementMode?: 'development' | 'production';
+  keyManagementMode: 'development' | 'production';
+  eventTimeoutMs?: number;
+  challengePrefix?: string;
+  
   // Supabase config
   supabaseUrl?: string;
   supabaseKey?: string;
+  
   // Auth config
   jwtSecret?: string;
   jwtExpiresIn?: string;
   testMode?: boolean;
-  // Optional configs
-  eventTimeoutMs?: number;
-  challengePrefix?: string;
 }
 
 export interface NostrConfig extends NostrAuthConfig {

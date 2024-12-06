@@ -1,198 +1,162 @@
-import { Injectable } from '@nestjs/common';
 import { NostrEvent } from '../interfaces/nostr.interface';
 import { verifySignature } from '@humanjavaenterprises/nostr-crypto-utils';
 import { createLogger } from '../utils/logger';
 import { generateEventHash } from '../utils/crypto.utils';
 import { hexToBytes } from '@noble/hashes/utils';
+import { VerificationResult } from '../types/index.js';
 
-@Injectable()
-export class NostrEventValidator {
-  private readonly logger = createLogger('NostrEventValidator');
+const logger = createLogger('NostrEventValidator');
 
-  /**
-   * Validate a Nostr event
-   */
-  async validateEvent(event: NostrEvent): Promise<boolean> {
-    try {
-      // Validate event structure
-      if (!event || typeof event !== 'object') {
-        throw new Error('Event must be an object');
-      }
-
-      // Check required fields
-      const requiredFields = ['id', 'pubkey', 'created_at', 'kind', 'tags', 'content', 'sig'];
-      for (const field of requiredFields) {
-        if (!(field in event)) {
-          throw new Error(`Missing required field: ${field}`);
-        }
-      }
-
-      // Validate field types
-      if (typeof event.id !== 'string' || event.id.length !== 64) {
-        throw new Error('Invalid id format');
-      }
-
-      if (typeof event.pubkey !== 'string' || event.pubkey.length !== 64) {
-        throw new Error('Invalid pubkey format');
-      }
-
-      if (typeof event.created_at !== 'number') {
-        throw new Error('created_at must be a number');
-      }
-
-      if (typeof event.kind !== 'number') {
-        throw new Error('kind must be a number');
-      }
-
-      if (!Array.isArray(event.tags)) {
-        throw new Error('tags must be an array');
-      }
-
-      if (typeof event.content !== 'string') {
-        throw new Error('content must be a string');
-      }
-
-      if (typeof event.sig !== 'string' || event.sig.length !== 128) {
-        throw new Error('Invalid sig format');
-      }
-
-      // Verify signature
-      const isValid = verifySignature(event);
-      if (!isValid) {
-        throw new Error('Invalid signature');
-      }
-
-      return true;
-    } catch (error) {
-      this.logger.error('Event validation failed:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Validate a challenge event
-   */
-  async validateChallengeEvent(event: NostrEvent): Promise<boolean> {
-    try {
-      if (!await this.validateEvent(event)) {
-        return false;
-      }
-
-      // Challenge events must be kind 22242
-      if (event.kind !== 22242) {
-        this.logger.warn('Invalid event kind for challenge');
-        return false;
-      }
-
-      // Must have a challenge tag
-      const challengeTag = event.tags.find(t => t[0] === 'challenge');
-      if (!challengeTag) {
-        this.logger.warn('Missing challenge tag');
-        return false;
-      }
-
-      // Basic validation
-      if (!this.validateBasicEventFormat(event)) {
-        return false;
-      }
-
-      // Validate event hash
-      const hash = generateEventHash(event);
-      if (hash !== event.id) {
-        this.logger.error('Event hash mismatch');
-        return false;
-      }
-
-      // Verify signature
-      const signatureValid = await verifySignature(
-        event.sig,
-        hexToBytes(event.id),
-        event.pubkey
-      );
-
-      if (!signatureValid) {
-        this.logger.error('Invalid signature');
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      this.logger.error('Challenge event validation failed:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Validate an enrollment event
-   */
-  async validateEnrollmentEvent(event: NostrEvent): Promise<boolean> {
-    try {
-      if (!await this.validateEvent(event)) {
-        return false;
-      }
-
-      // Enrollment events must be kind 22243
-      if (event.kind !== 22243) {
-        this.logger.warn('Invalid event kind for enrollment');
-        return false;
-      }
-
-      // Must have an action tag with value 'enroll'
-      const actionTag = event.tags.find(t => t[0] === 'action' && t[1] === 'enroll');
-      if (!actionTag) {
-        this.logger.warn('Missing or invalid action tag');
-        return false;
-      }
-
-      // Basic validation
-      if (!this.validateBasicEventFormat(event)) {
-        return false;
-      }
-
-      // Validate event hash
-      const hash = generateEventHash(event);
-      if (hash !== event.id) {
-        this.logger.error('Event hash mismatch');
-        return false;
-      }
-
-      // Verify signature
-      const signatureValid = await verifySignature(
-        event.sig,
-        hexToBytes(event.id),
-        event.pubkey
-      );
-
-      if (!signatureValid) {
-        this.logger.error('Invalid signature');
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      this.logger.error('Enrollment event validation failed:', error);
-      return false;
-    }
-  }
-
-  private validateBasicEventFormat(event: NostrEvent): boolean {
+/**
+ * Validate a Nostr event
+ */
+export async function validateEvent(event: NostrEvent): Promise<VerificationResult> {
+  try {
     // Check required fields
-    if (!event.kind || !event.created_at || !event.pubkey || !event.id || !event.sig) {
-      this.logger.error('Missing required fields');
+    if (!event.pubkey || !event.content || !event.sig) {
+      return { success: false, error: 'Missing required fields' };
+    }
+
+    // Validate pubkey format
+    if (!/^[0-9a-f]{64}$/.test(event.pubkey)) {
+      return { success: false, error: 'Invalid pubkey format' };
+    }
+
+    // Validate signature format
+    if (!/^[0-9a-f]{128}$/.test(event.sig)) {
+      return { success: false, error: 'Invalid signature format' };
+    }
+
+    // Verify signature
+    const isValid = await verifySignature(event);
+    if (!isValid) {
+      return { success: false, error: 'Invalid signature' };
+    }
+
+    return { success: true, pubkey: event.pubkey };
+  } catch (error) {
+    logger.error('Event validation error:', { error: error instanceof Error ? error.message : String(error) });
+    return { success: false, error: 'Event validation failed' };
+  }
+}
+
+/**
+ * Validate a challenge event
+ */
+export async function validateChallengeEvent(event: NostrEvent): Promise<boolean> {
+  try {
+    const result = await validateEvent(event);
+    if (!result.success) {
       return false;
     }
 
-    // Check types
-    if (typeof event.kind !== 'number' ||
-      typeof event.created_at !== 'number' ||
-      typeof event.pubkey !== 'string' ||
-      typeof event.id !== 'string' ||
-      typeof event.sig !== 'string' ||
-      !Array.isArray(event.tags)) {
-      this.logger.error('Invalid field types');
+    // Challenge events must be kind 22242
+    if (event.kind !== 22242) {
+      logger.warn('Invalid event kind for challenge');
+      return false;
+    }
+
+    // Must have a challenge tag
+    const challengeTag = event.tags.find(t => t[0] === 'challenge');
+    if (!challengeTag) {
+      logger.warn('Missing challenge tag');
+      return false;
+    }
+
+    // Basic validation
+    if (!validateBasicEventFormat(event)) {
+      return false;
+    }
+
+    // Validate event hash
+    const hash = generateEventHash(event);
+    if (hash !== event.id) {
+      logger.error('Event hash mismatch');
+      return false;
+    }
+
+    // Verify signature
+    const signatureValid = await verifySignature(event);
+
+    if (!signatureValid) {
+      logger.error('Invalid signature');
       return false;
     }
 
     return true;
+  } catch (error) {
+    logger.error('Challenge event validation failed:', error);
+    return false;
   }
+}
+
+/**
+ * Validate an enrollment event
+ */
+export async function validateEnrollmentEvent(event: NostrEvent): Promise<boolean> {
+  try {
+    const result = await validateEvent(event);
+    if (!result.success) {
+      return false;
+    }
+
+    // Enrollment events must be kind 22243
+    if (event.kind !== 22243) {
+      logger.warn('Invalid event kind for enrollment');
+      return false;
+    }
+
+    // Must have an action tag with value 'enroll'
+    const actionTag = event.tags.find(t => t[0] === 'action' && t[1] === 'enroll');
+    if (!actionTag) {
+      logger.warn('Missing or invalid action tag');
+      return false;
+    }
+
+    // Basic validation
+    if (!validateBasicEventFormat(event)) {
+      return false;
+    }
+
+    // Validate event hash
+    const hash = generateEventHash(event);
+    if (hash !== event.id) {
+      logger.error('Event hash mismatch');
+      return false;
+    }
+
+    // Verify signature
+    const signatureValid = await verifySignature(event);
+
+    if (!signatureValid) {
+      logger.error('Invalid signature');
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    logger.error('Enrollment event validation failed:', error);
+    return false;
+  }
+}
+
+function validateBasicEventFormat(event: NostrEvent): boolean {
+  // Check required fields
+  if (!event.kind || !event.created_at || !event.pubkey || !event.id || !event.sig) {
+    logger.error('Missing required fields');
+    return false;
+  }
+
+  // Check types
+  if (typeof event.kind !== 'number' ||
+    typeof event.created_at !== 'number' ||
+    typeof event.pubkey !== 'string' ||
+    typeof event.id !== 'string' ||
+    typeof event.sig !== 'string' ||
+    !Array.isArray(event.tags)) {
+    logger.error('Invalid field types');
+    return false;
+  }
+
+  return true;
 }

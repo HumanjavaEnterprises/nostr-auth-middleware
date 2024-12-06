@@ -5,6 +5,7 @@ import { createLogger } from './utils/logger.js';
 import { NostrAuthMiddleware } from './middleware/nostr-auth.middleware.js';
 import { validateApiKey, ipWhitelist, rateLimiter, securityHeaders } from './middleware/security.middleware.js';
 import { config } from './config/index.js';
+import { NostrConfig } from './types/index.js';
 
 const logger = createLogger('Server');
 const app = express();
@@ -41,10 +42,9 @@ app.get('/health', (req, res) => {
 });
 
 // Initialize Nostr auth middleware
-const nostrAuth = new NostrAuthMiddleware({
+const nostrConfig: NostrConfig = {
   port: config.port,
   nodeEnv: config.nodeEnv,
-  corsOrigins: config.corsOrigins,
   nostrRelays: config.nostrRelays ?? [
     'wss://relay.maiqr.app',
     'wss://relay.damus.io',
@@ -58,8 +58,10 @@ const nostrAuth = new NostrAuthMiddleware({
   testMode: config.testMode,
   privateKey: config.privateKey,
   publicKey: config.publicKey,
-  keyManagementMode: config.keyManagementMode
-});
+  keyManagementMode: 'development'
+};
+
+const nostrAuth = new NostrAuthMiddleware(nostrConfig);
 
 // Mount Nostr auth routes with API key validation
 app.use('/auth/nostr', validateApiKey, nostrAuth.getRouter());

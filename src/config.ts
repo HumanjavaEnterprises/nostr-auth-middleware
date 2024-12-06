@@ -1,72 +1,80 @@
-import dotenv from 'dotenv';
+import { NostrAuthConfig } from './types';
 import { createLogger } from './utils/logger';
-import { hexToBytes } from '@noble/hashes/utils';
-import { getPublicKey } from './utils/crypto.utils';
-
-dotenv.config();
 
 const logger = createLogger('Config');
 
 function getEnvWithWarning(key: string): string | undefined {
   const value = process.env[key];
   if (!value) {
-    logger.warn(`Missing environment variable: ${key} - Some features may be limited`);
+    logger.warn(`${key} not set in environment variables`);
   }
   return value;
 }
 
-function validatePrivateKey(key: string | undefined): string {
-  if (!key) {
-    throw new Error('SERVER_PRIVATE_KEY is required');
+function validatePrivateKey(privateKey?: string): string | undefined {
+  if (!privateKey) {
+    return undefined;
   }
+
   try {
-    // Validate key format
-    if (!/^[0-9a-f]{64}$/.test(key)) {
-      throw new Error('SERVER_PRIVATE_KEY must be a 64-character hex string');
+    // Validate hex format
+    if (!/^[0-9a-f]{64}$/.test(privateKey)) {
+      throw new Error('Invalid private key format');
     }
-    // Test key derivation
-    const privateKeyBytes = hexToBytes(key);
-    const pubkey = getPublicKey(privateKeyBytes);
-    logger.info('Server keys validated. Public key:', pubkey);
-    return key;
+    return privateKey;
   } catch (error) {
     logger.error('Invalid SERVER_PRIVATE_KEY:', error);
     throw error;
   }
 }
 
-export const config = {
-  // Server config
+export const config: NostrAuthConfig = {
+  keyManagementMode: process.env.KEY_MANAGEMENT_MODE === 'production' ? 'production' : 'development',
   port: parseInt(process.env.PORT || '3002', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
-  
-  // CORS
-  corsOrigins: process.env.CORS_ORIGINS?.split(',') || '*',
-  
-  // Nostr config
-  nostrRelays: process.env.NOSTR_RELAYS?.split(',') || [
-    'wss://relay.damus.io',
-    'wss://relay.nostr.band'
-  ],
-  
-  // Supabase config - optional for testing
-  supabaseUrl: getEnvWithWarning('SUPABASE_URL'),
-  supabaseKey: getEnvWithWarning('SUPABASE_KEY'),
-  
-  // JWT config - optional for testing
+  corsOrigin: process.env.CORS_ORIGIN || '*',
+  corsCredentials: process.env.CORS_CREDENTIALS === 'true',
+  eventTimeoutMs: parseInt(process.env.EVENT_TIMEOUT_MS || '5000', 10),
+  challengePrefix: process.env.CHALLENGE_PREFIX || 'nostr:auth:',
+  testMode: process.env.TEST_MODE === 'true',
+  logLevel: process.env.LOG_LEVEL || 'info',
   jwtSecret: getEnvWithWarning('JWT_SECRET'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
-  
-  // Key Management Mode
-  keyManagementMode: (process.env.KEY_MANAGEMENT_MODE === 'production' ? 'production' : 'development') as 'development' | 'production',
-  
-  // Server key pair - required and validated
+  supabaseUrl: getEnvWithWarning('SUPABASE_URL'),
+  supabaseKey: getEnvWithWarning('SUPABASE_KEY'),
   privateKey: validatePrivateKey(process.env.SERVER_PRIVATE_KEY),
-  publicKey: process.env.SERVER_PUBLIC_KEY,
-  
-  // Testing mode - disables Supabase and JWT requirements
-  testMode: process.env.TEST_MODE === 'true',
-  
-  // Logging
-  logLevel: process.env.LOG_LEVEL || 'info'
-} as const;
+  publicKey: process.env.SERVER_PUBLIC_KEY
+};
+
+export function validateConfig(config: NostrAuthConfig): void {
+  if (!config) {
+    throw new Error('Config is required');
+  }
+
+  if (!config.keyManagementMode) {
+    throw new Error('keyManagementMode is required in config');
+  }
+
+  if (config.keyManagementMode === 'production') {
+    if (!config.privateKey) {
+      throw new Error('privateKey is required in production mode');
+    }
+
+    // Validate private key format
+    if (!/^[0-9a-f]{64}$/.test(config.privateKey)) {
+      throw new Error('Invalid private key format');
+    }
+  }
+
+  // Log config (excluding sensitive values)
+  const sanitizedConfig = {
+    ...config,
+    privateKey: config.privateKey ? '***' : undefined,
+    jwtSecret: config.jwtSecret ? '***' : undefined,
+    supabaseKey: config.supabaseKey ? '***' : undefined
+  };
+
+  logger.info('Config validated:', sanitizedConfig);
+}
+
+validateConfig(config);

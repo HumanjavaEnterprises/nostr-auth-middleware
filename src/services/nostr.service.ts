@@ -8,16 +8,20 @@ import { hexToBytes } from '@noble/hashes/utils';
 import { NostrEvent, NostrChallenge } from '../utils/types';
 import { config } from '../config';
 import crypto from 'crypto';
+import { 
+  generateSeedPhrase,
+  seedPhraseToPrivateKey,
+  validateSeedPhrase 
+} from '@humanjavaenterprises/nostr-nsec-seedphrase-library';
 
 export class NostrService {
   private readonly logger = createLogger('NostrService');
   private readonly validator: NostrEventValidator;
   private readonly supabase?: SupabaseClient;
-  private readonly challenges = new Map<string, NostrChallenge>();
-  private readonly enrollments = new Map<string, NostrEnrollment>();
-  private readonly profiles = new Map<string, NostrProfile>();
-  private serverPubkey: string = '';
-  private readonly CHALLENGE_EXPIRY = 5 * 60 * 1000; // 5 minutes in milliseconds
+  private readonly challenges: Map<string, NostrChallenge> = new Map();
+  private readonly profiles: Map<string, NostrProfile> = new Map();
+  private readonly CHALLENGE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+  private serverPubkey: string;
 
   constructor(private readonly config: NostrAuthConfig) {
     this.validator = new NostrEventValidator();
@@ -26,8 +30,9 @@ export class NostrService {
     
     // Generate a development private key if not provided
     if ((this.config.keyManagementMode === 'development' || this.config.testMode) && !this.config.privateKey) {
-      this.config.privateKey = crypto.randomBytes(32).toString('hex');
-      this.logger.info('Generated development/test private key');
+      const seedPhrase = generateSeedPhrase();
+      this.config.privateKey = seedPhraseToPrivateKey(seedPhrase);
+      this.logger.info('Generated development/test private key from seed phrase');
     }
 
     // Initialize server's public key based on key management mode
@@ -206,7 +211,7 @@ export class NostrService {
       };
 
       const enrollment = this.createEnrollment(event);
-      this.enrollments.set(pubkey, enrollment);
+      this.profiles.set(pubkey, enrollment);
       return enrollment;
     } catch (error) {
       this.logger.error('Failed to start enrollment:', error);
@@ -219,7 +224,7 @@ export class NostrService {
    */
   async verifyEnrollment(signedEvent: NostrEvent): Promise<VerificationResult> {
     try {
-      const enrollment = this.enrollments.get(signedEvent.pubkey);
+      const enrollment = this.profiles.get(signedEvent.pubkey);
       if (!enrollment) {
         return {
           success: false,

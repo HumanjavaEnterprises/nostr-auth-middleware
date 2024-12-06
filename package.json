@@ -81,6 +81,8 @@
     "@noble/secp256k1": "^2.0.0",
     "@supabase/supabase-js": "^2.39.1",
     "@types/express-rate-limit": "^6.0.2",
+    "@humanjavaenterprises/nostr-crypto-utils": "file:../nostr-crypto-utils",
+    "@humanjavaenterprises/nostr-nsec-seedphrase-library": "file:../nostr-nsec-seedphrase-library",
     "axios": "^1.7.8",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

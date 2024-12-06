@@ -111,5 +111,8 @@
   },
   "peerDependencies": {
     "nostr-tools": "^2.10.4"
+  },
+  "resolutions": {
+    "path-to-regexp": "^6.2.1"
   }
 }

@@ -1,8 +1,11 @@
-import { NostrEvent } from '../utils/types';
+import { Injectable } from '@nestjs/common';
+import { NostrEvent } from '../interfaces/nostr.interface';
+import { verifySignature } from '@humanjavaenterprises/nostr-crypto-utils';
 import { createLogger } from '../utils/logger';
-import { generateEventHash, verifySignature } from '../utils/crypto.utils';
+import { generateEventHash } from '../utils/crypto.utils';
 import { hexToBytes } from '@noble/hashes/utils';
 
+@Injectable()
 export class NostrEventValidator {
   private readonly logger = createLogger('NostrEventValidator');
 
@@ -11,30 +14,52 @@ export class NostrEventValidator {
    */
   async validateEvent(event: NostrEvent): Promise<boolean> {
     try {
+      // Validate event structure
+      if (!event || typeof event !== 'object') {
+        throw new Error('Event must be an object');
+      }
+
       // Check required fields
-      if (!event.id || !event.pubkey || !event.sig || !event.kind || !event.created_at) {
-        this.logger.warn('Missing required fields in event');
-        return false;
-      }
-
-      // Validate created_at timestamp
-      const now = Math.floor(Date.now() / 1000);
-      if (event.created_at > now + 300 || event.created_at < now - 300) {
-        this.logger.warn('Event timestamp is too far from current time');
-        return false;
-      }
-
-      // Validate tags format
-      if (!Array.isArray(event.tags)) {
-        this.logger.warn('Invalid tags format');
-        return false;
-      }
-
-      for (const tag of event.tags) {
-        if (!Array.isArray(tag) || tag.length < 2) {
-          this.logger.warn('Invalid tag format');
-          return false;
+      const requiredFields = ['id', 'pubkey', 'created_at', 'kind', 'tags', 'content', 'sig'];
+      for (const field of requiredFields) {
+        if (!(field in event)) {
+          throw new Error(`Missing required field: ${field}`);
         }
+      }
+
+      // Validate field types
+      if (typeof event.id !== 'string' || event.id.length !== 64) {
+        throw new Error('Invalid id format');
+      }
+
+      if (typeof event.pubkey !== 'string' || event.pubkey.length !== 64) {
+        throw new Error('Invalid pubkey format');
+      }
+
+      if (typeof event.created_at !== 'number') {
+        throw new Error('created_at must be a number');
+      }
+
+      if (typeof event.kind !== 'number') {
+        throw new Error('kind must be a number');
+      }
+
+      if (!Array.isArray(event.tags)) {
+        throw new Error('tags must be an array');
+      }
+
+      if (typeof event.content !== 'string') {
+        throw new Error('content must be a string');
+      }
+
+      if (typeof event.sig !== 'string' || event.sig.length !== 128) {
+        throw new Error('Invalid sig format');
+      }
+
+      // Verify signature
+      const isValid = verifySignature(event);
+      if (!isValid) {
+        throw new Error('Invalid signature');
       }
 
       return true;

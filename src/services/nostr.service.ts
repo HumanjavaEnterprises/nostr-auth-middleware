@@ -1,68 +1,67 @@
-import { NostrAuthConfig, NostrEnrollment, NostrProfile, VerificationResult } from '../types';
-import { createLogger } from '../utils/logger';
-import { generateChallenge, generateEventHash, getPublicKey } from '../utils/crypto.utils';
-import { NostrEventValidator } from '../validators/event.validator';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
-import { hexToBytes } from '@noble/hashes/utils';
-import { NostrEvent, NostrChallenge } from '../utils/types';
-import { config } from '../config';
-import crypto from 'crypto';
 import { 
-  generateSeedPhrase,
-  seedPhraseToPrivateKey,
+  generateKeyPairWithSeed,
   validateSeedPhrase 
 } from '@humanjavaenterprises/nostr-nsec-seedphrase-library';
+import { createLogger } from '../utils/logger';
+import { NostrEventValidator } from '../validators/nostr-event.validator';
+import { NostrEvent } from '../utils/types';
+import { 
+  NostrAuthConfig, 
+  NostrProfile, 
+  NostrChallenge,
+  NostrEnrollment,
+  VerificationResult 
+} from '../types';
+import jwt from 'jsonwebtoken';
+import { generateChallenge, verifySignature } from '../utils/crypto.utils';
+import { hexToBytes } from '@noble/hashes/utils';
 
 export class NostrService {
   private readonly logger = createLogger('NostrService');
   private readonly validator: NostrEventValidator;
-  private readonly supabase?: SupabaseClient;
   private readonly challenges: Map<string, NostrChallenge> = new Map();
   private readonly profiles: Map<string, NostrProfile> = new Map();
   private readonly CHALLENGE_EXPIRY = 5 * 60 * 1000; // 5 minutes
-  private serverPubkey: string;
+  private serverPubkey: string = '';
+  private privateKey: string = '';
+  private seedPhrase?: string;
 
   constructor(private readonly config: NostrAuthConfig) {
     this.validator = new NostrEventValidator();
     this.config.eventTimeoutMs = this.config.eventTimeoutMs || 5000;
     this.config.challengePrefix = this.config.challengePrefix || 'nostr:auth:';
-    
+
     // Generate a development private key if not provided
     if ((this.config.keyManagementMode === 'development' || this.config.testMode) && !this.config.privateKey) {
-      const seedPhrase = generateSeedPhrase();
-      this.config.privateKey = seedPhraseToPrivateKey(seedPhrase);
+      const keyPair = generateKeyPairWithSeed();
+      this.seedPhrase = keyPair.seedPhrase;
+      this.privateKey = keyPair.privateKey;
       this.logger.info('Generated development/test private key from seed phrase');
+    } else {
+      this.privateKey = this.config.privateKey || '';
     }
 
-    // Initialize server's public key based on key management mode
+    // Initialize server's public key
     try {
-      const privateKeyBytes = this.getPrivateKeyBytes();
-      this.serverPubkey = getPublicKey(privateKeyBytes);
-      this.logger.info('Server pubkey derived from private key:', this.serverPubkey);
+      this.serverPubkey = this.config.publicKey || '';
+      if (!this.serverPubkey) {
+        throw new Error('Server public key not configured');
+      }
     } catch (error) {
-      this.logger.error('Failed to derive server pubkey:', error);
-      throw new Error('Failed to derive server pubkey');
-    }
-    
-    // Initialize Supabase if configured and not in test mode
-    if (!this.config.testMode && this.config.supabaseUrl && this.config.supabaseKey) {
-      this.supabase = createClient(this.config.supabaseUrl, this.config.supabaseKey);
-      this.logger.info('Supabase client initialized');
-    } else {
-      this.logger.warn('Running without Supabase - profiles will not be persisted');
+      this.logger.error('Failed to initialize server public key:', error);
+      throw error;
     }
   }
 
   private getPrivateKeyBytes(): Uint8Array {
-    if (!this.config.privateKey) {
+    if (!this.privateKey) {
       this.logger.error('Private key not found in config');
       throw new Error('Server private key not configured');
     }
 
     try {
       // Remove '0x' prefix if present
-      const cleanKey = this.config.privateKey.replace('0x', '');
+      const cleanKey = this.privateKey.replace('0x', '');
       this.logger.debug('Clean private key length:', cleanKey.length);
       
       // Ensure the key is 64 characters (32 bytes) long
@@ -95,7 +94,7 @@ export class NostrService {
   async createChallenge(pubkey: string): Promise<NostrChallenge> {
     try {
       // Make sure server keys are initialized
-      if (!this.config.privateKey) {
+      if (!this.privateKey) {
         this.logger.error('Private key not configured');
         throw new Error('Server private key not configured');
       }
@@ -103,10 +102,10 @@ export class NostrService {
       this.cleanupExpiredChallenges();
 
       this.logger.info('Creating challenge for pubkey:', pubkey);
-      this.logger.debug('Using private key:', this.config.privateKey.substring(0, 8) + '...');
+      this.logger.debug('Using private key:', this.privateKey.substring(0, 8) + '...');
       
       try {
-        const challengeEvent = await generateChallenge(this.config.privateKey, pubkey);
+        const challengeEvent = await generateChallenge(this.privateKey, pubkey);
         this.logger.debug('Generated challenge event:', JSON.stringify(challengeEvent, null, 2));
         const expiresAt = Date.now() + this.CHALLENGE_EXPIRY;
 
@@ -190,7 +189,7 @@ export class NostrService {
    */
   async startEnrollment(pubkey: string): Promise<NostrEnrollment> {
     try {
-      if (!this.config.privateKey) {
+      if (!this.privateKey) {
         throw new Error('Server private key not configured');
       }
 
@@ -326,5 +325,9 @@ export class NostrService {
     return jwt.sign({ pubkey }, this.config.jwtSecret, {
       expiresIn: this.config.jwtExpiresIn || '1h'
     });
+  }
+
+  public validateSeedPhrase(seedPhrase: string): boolean {
+    return validateSeedPhrase(seedPhrase);
   }
 }

@@ -1,13 +1,13 @@
-import { NostrEvent } from './types';
 import { 
-  generateKeyPair as generateNostrKeyPair,
+  generateKeyPair as genKeyPair,
   getPublicKey as getNostrPublicKey,
-  signEvent,
-  verifySignature as verifyNostrSignature,
-  generateEventHash as generateNostrEventHash
+  getEventHash,
+  signEvent as signNostrEvent,
+  verifySignature as verifyNostrSignature
 } from '@humanjavaenterprises/nostr-crypto-utils';
 import { hexToBytes } from '@noble/hashes/utils';
 import crypto from 'crypto';
+import { NostrEvent } from '../utils/types';
 
 // Create a serialized event for hashing
 function serializeEvent(event: Partial<NostrEvent>) {
@@ -22,32 +22,66 @@ function serializeEvent(event: Partial<NostrEvent>) {
 }
 
 export function generateKeyPair() {
-  return generateNostrKeyPair();
+  return genKeyPair();
 }
 
-export function getPublicKey(privateKey: Uint8Array): string {
+export function getPublicKey(privateKey: string): string {
   return getNostrPublicKey(privateKey);
 }
 
-export async function verifySignature(signature: string, hash: Uint8Array, publicKey: string): Promise<boolean> {
-  return verifyNostrSignature(signature, hash, publicKey);
+export async function verifySignature(event: NostrEvent): Promise<boolean> {
+  return verifyNostrSignature(event);
 }
 
-export async function signNostrEvent(event: NostrEvent, privateKey: Uint8Array): Promise<NostrEvent> {
-  return signEvent(event, privateKey);
+export function generateEventHash(event: Partial<NostrEvent>): string {
+  return getEventHash(event as NostrEvent);
 }
 
-export function generateEventHash(event: NostrEvent): string {
-  return generateNostrEventHash(event);
+export async function signEvent(event: NostrEvent, privateKey: string): Promise<NostrEvent> {
+  return signNostrEvent(event, privateKey);
 }
 
-export async function generateChallenge(serverPrivateKey: string, clientPubkey: string): Promise<NostrEvent> {
+export function generateChallenge(pubkey: string): NostrEvent {
+  const now = Math.floor(Date.now() / 1000);
+  const event: NostrEvent = {
+    kind: 22242,
+    created_at: now,
+    tags: [['challenge', pubkey]],
+    content: 'Authentication request',
+    pubkey: pubkey,
+    id: '',
+    sig: ''
+  };
+
+  event.id = getEventHash(event);
+  event.sig = signNostrEvent(event, pubkey) as unknown as string;
+
+  return event;
+}
+
+export async function signChallenge(challenge: string, privateKey: string): Promise<NostrEvent> {
+  const now = Math.floor(Date.now() / 1000);
+  const event: NostrEvent = {
+    kind: 22242,
+    created_at: now,
+    tags: [['challenge', challenge]],
+    content: 'Authentication response',
+    pubkey: getPublicKey(privateKey),
+    id: '',
+    sig: ''
+  };
+
+  event.id = getEventHash(event);
+  const signedEvent = await signNostrEvent(event, privateKey);
+  return signedEvent;
+}
+
+export async function generateChallengeServer(serverPrivateKey: string, clientPubkey: string): Promise<NostrEvent> {
   const timestamp = Math.floor(Date.now() / 1000);
   const randomValue = crypto.randomBytes(32).toString('hex');
-  const privateKeyBytes = hexToBytes(serverPrivateKey);
-  const pubkey = getPublicKey(privateKeyBytes);
+  const pubkey = getPublicKey(serverPrivateKey);
   
-  const unsignedEvent = {
+  const event: NostrEvent = {
     kind: 22242,
     created_at: timestamp,
     tags: [
@@ -56,16 +90,13 @@ export async function generateChallenge(serverPrivateKey: string, clientPubkey: 
       ['challenge', randomValue]
     ],
     content: '',
-    pubkey
+    pubkey,
+    id: '',
+    sig: ''
   };
 
   // Generate event hash and sign using our crypto utils
-  const id = generateEventHash(unsignedEvent);
-  const signedEvent = await signNostrEvent(unsignedEvent, privateKeyBytes);
-
-  return {
-    ...unsignedEvent,
-    id,
-    sig: signedEvent.sig
-  };
+  event.id = generateEventHash(event);
+  const signedEvent = await signNostrEvent(event, serverPrivateKey);
+  return signedEvent;
 }

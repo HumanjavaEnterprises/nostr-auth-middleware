@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Express middleware for handling Nostr authentication
+ * Provides endpoints for challenge-response authentication, verification, and user enrollment
+ */
+
 import { Request, Response, NextFunction, Router } from 'express';
 import { NostrService } from '../services/nostr.service.js';
 import { NostrEvent, NostrConfig } from '../types/index.js';
@@ -6,10 +11,21 @@ import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('NostrAuthMiddleware');
 
+/**
+ * Express middleware class for handling Nostr authentication flows
+ * @class NostrAuthMiddleware
+ * @description Provides endpoints for challenge-response authentication, verification, and user enrollment
+ * using the Nostr protocol
+ */
 export class NostrAuthMiddleware {
   private readonly router: Router;
   private readonly nostrService: NostrService;
 
+  /**
+   * Creates a new NostrAuthMiddleware instance
+   * @param {NostrConfig} config - Configuration options for the middleware
+   * @param {NostrService} [nostrService] - Optional NostrService instance for testing
+   */
   constructor(config: NostrConfig, nostrService?: NostrService) {
     const supabase = createClient(config.supabaseUrl || '', config.supabaseKey || '');
     this.nostrService = nostrService || new NostrService(config);
@@ -17,6 +33,10 @@ export class NostrAuthMiddleware {
     this.setupRoutes();
   }
 
+  /**
+   * Sets up the Express routes for the middleware
+   * @private
+   */
   private setupRoutes() {
     this.router.post('/challenge/:pubkey', this.handleChallenge.bind(this));
     this.router.post('/verify', this.handleVerification.bind(this));
@@ -24,6 +44,14 @@ export class NostrAuthMiddleware {
     this.router.get('/profile/:pubkey', this.handleProfileFetch.bind(this));
   }
 
+  /**
+   * Handles challenge creation requests
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @param {NextFunction} next - Express next function
+   * @returns {Promise<void>}
+   * @throws {Error} When challenge creation fails
+   */
   async handleChallenge(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { pubkey } = req.params;
@@ -40,6 +68,14 @@ export class NostrAuthMiddleware {
     }
   }
 
+  /**
+   * Handles verification of signed challenges
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @param {NextFunction} next - Express next function
+   * @returns {Promise<void>}
+   * @throws {Error} When verification fails
+   */
   async handleVerification(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { event } = req.body as { event: NostrEvent };
@@ -67,6 +103,14 @@ export class NostrAuthMiddleware {
     }
   }
 
+  /**
+   * Handles user enrollment requests
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @param {NextFunction} next - Express next function
+   * @returns {Promise<void>}
+   * @throws {Error} When enrollment fails
+   */
   async handleEnrollment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { event } = req.body as { event: NostrEvent };
@@ -89,6 +133,14 @@ export class NostrAuthMiddleware {
     }
   }
 
+  /**
+   * Handles profile fetch requests
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @param {NextFunction} next - Express next function
+   * @returns {Promise<void>}
+   * @throws {Error} When profile fetch fails
+   */
   async handleProfileFetch(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { pubkey } = req.params;
@@ -105,7 +157,7 @@ export class NostrAuthMiddleware {
 
       res.json({ profile });
     } catch (error) {
-      logger.error('Error fetching profile:', { error: error instanceof Error ? error.message : String(error) });
+      logger.error('Error handling profile fetch:', { error: error instanceof Error ? error.message : String(error) });
       next(error);
     }
   }

@@ -5,6 +5,20 @@ This CHECKLIST.md serves as an active memory document for the nostr-auth-middlew
 
 # Development Checklist and Notes
 
+## Core Requirements
+1. Single Responsibility Principle
+   - [ ] New features must ONLY handle authentication-related functionality
+   - [ ] Business logic must remain in the API layer
+   - [ ] JWT claims must stay minimal (npub, timestamp only)
+
+2. Security Requirements
+   - [ ] No sensitive data in code or comments
+   - [ ] No hardcoded keys or secrets
+   - [ ] All cryptographic operations must use approved libraries
+   - [ ] Environment variables must be properly validated
+   - [ ] Security-critical code must include tests
+   - [ ] All authentication flows must be documented
+
 ## Package Structure
 - Package should be set up as a hybrid CommonJS/ESM module
 - Main entry points should be defined in package.json:
@@ -36,29 +50,70 @@ This CHECKLIST.md serves as an active memory document for the nostr-auth-middlew
 
 2. Development Dependencies:
    - Add webpack and related build tools
-   - Maintain existing test framework (Jest)
+   - Maintain Vitest test framework
    - Keep TypeScript and related tools
 
-## Module Resolution
-1. TypeScript Configuration:
-   - Update tsconfig.json for dual CJS/ESM output
-   - Add separate configs for different build targets
-   - Maintain strict type checking
+## Environment Handling
+1. Development Mode Requirements
+   - [ ] Use local directory structure
+   - [ ] Enable detailed logging
+   - [ ] Support hot-reloading
+   - [ ] Use in-memory storage when appropriate
 
-2. Package Exports:
-   - Configure package.json exports field for proper resolution
-   - Support both import and require syntax
-   - Maintain TypeScript types accessibility
+2. Production Mode Requirements
+   - [ ] Implement proper file permissions
+   - [ ] Enable log rotation
+   - [ ] Configure rate limiting
+   - [ ] Set up IP whitelisting
+   - [ ] Enable automatic backups
 
 ## Testing Guidelines
-1. Run full test suite after any build changes
-2. Test all module formats:
-   - CommonJS (`require`)
-   - ESM (`import`)
-   - Browser bundle
-3. Maintain existing test coverage
+1. Test Coverage Requirements
+   - [ ] All security-critical code must have 100% coverage
+   - [ ] All authentication flows must have integration tests
+   - [ ] All API endpoints must have tests
+   - [ ] All error conditions must be tested
+
+2. Test Organization
+   - [ ] Unit tests in `src/__tests__`
+   - [ ] Integration tests using test scripts
+   - [ ] Live testing configurations separate
+
+## Documentation Requirements
+1. Code Documentation
+   - [ ] All public APIs must have JSDoc comments
+   - [ ] All security-critical functions must be documented
+   - [ ] All configuration options must be documented
+   - [ ] All error conditions must be documented
+
+2. Architectural Documentation
+   - [ ] Update architecture diagrams when changing flows
+   - [ ] Document all environment variables
+   - [ ] Maintain security considerations section
+   - [ ] Update deployment instructions
 
 ## Deployment Process
-1. Preserve all existing deployment scripts
-2. Update CI/CD if needed for new build process
-3. Maintain PM2 configuration
+1. Pre-deployment Checklist
+   - [ ] All tests passing
+   - [ ] Security audit completed
+   - [ ] Environment variables validated
+   - [ ] Backup strategy confirmed
+
+2. Deployment Requirements
+   - [ ] Use PM2 for process management
+   - [ ] Configure proper directory permissions
+   - [ ] Set up log rotation
+   - [ ] Configure monitoring
+
+## Code Review Requirements
+1. Security Checks
+   - [ ] No sensitive data exposure
+   - [ ] Proper error handling
+   - [ ] Input validation
+   - [ ] Rate limiting where needed
+
+2. Architecture Checks
+   - [ ] Maintains single responsibility
+   - [ ] No business logic in auth layer
+   - [ ] Proper separation of concerns
+   - [ ] Follows established patterns

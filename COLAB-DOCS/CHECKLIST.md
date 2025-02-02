@@ -1,3 +1,8 @@
+# Purpose
+This CHECKLIST.md serves as an active memory document for the nostr-auth-middleware project. It is designed to maintain consistency across development sessions and AI collaboration sessions, ensuring that all contributors (human and AI) follow the same modernization guidelines and architectural decisions. This document should be consulted before making significant changes to the project structure or build system.
+
+---
+
 # Development Checklist and Notes
 
 ## Package Structure

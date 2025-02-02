@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Validator for Nostr events
+ * Provides functions for validating different types of Nostr events including challenges and enrollments
+ * @module event-validator
+ * @security This module is critical for maintaining the security of the Nostr authentication system
+ */
+
 import { NostrEvent } from '../types.js';
 import { verifySignature } from 'nostr-crypto-utils';
 import { createLogger } from '../utils/logger.js';
@@ -8,7 +15,16 @@ import { VerificationResult } from '../types.js';
 const logger = createLogger('NostrEventValidator');
 
 /**
- * Validate a Nostr event
+ * Validates a generic Nostr event
+ * @param {NostrEvent} event - The event to validate
+ * @returns {Promise<VerificationResult>} Result of the validation
+ * @description
+ * Performs the following checks:
+ * 1. Verifies all required fields are present
+ * 2. Validates pubkey format (64 hex characters)
+ * 3. Validates signature format (128 hex characters)
+ * 4. Verifies the cryptographic signature
+ * @security Critical for preventing unauthorized access and ensuring event integrity
  */
 export async function validateEvent(event: NostrEvent): Promise<VerificationResult> {
   try {
@@ -41,7 +57,17 @@ export async function validateEvent(event: NostrEvent): Promise<VerificationResu
 }
 
 /**
- * Validate a challenge event
+ * Validates a challenge event used in authentication
+ * @param {NostrEvent} event - The challenge event to validate
+ * @returns {Promise<boolean>} True if the challenge event is valid
+ * @description
+ * Performs the following checks:
+ * 1. Basic event validation
+ * 2. Verifies event kind is 22242 (challenge event)
+ * 3. Checks for presence of challenge tag
+ * 4. Validates event hash
+ * 5. Verifies cryptographic signature
+ * @security Critical for preventing replay attacks and ensuring challenge integrity
  */
 export async function validateChallengeEvent(event: NostrEvent): Promise<boolean> {
   try {
@@ -91,7 +117,15 @@ export async function validateChallengeEvent(event: NostrEvent): Promise<boolean
 }
 
 /**
- * Validate an enrollment event
+ * Validates an enrollment event
+ * @param {NostrEvent} event - The enrollment event to validate
+ * @returns {Promise<boolean>} True if the enrollment event is valid
+ * @description
+ * Performs the following checks:
+ * 1. Basic event validation
+ * 2. Verifies enrollment-specific fields and format
+ * 3. Validates cryptographic signatures
+ * @security Critical for preventing unauthorized enrollments
  */
 export async function validateEnrollmentEvent(event: NostrEvent): Promise<boolean> {
   try {
@@ -140,6 +174,12 @@ export async function validateEnrollmentEvent(event: NostrEvent): Promise<boolea
   }
 }
 
+/**
+ * Validates the basic format of a Nostr event
+ * @param {NostrEvent} event - The event to validate
+ * @returns {boolean} True if the event format is valid
+ * @private
+ */
 function validateBasicEventFormat(event: NostrEvent): boolean {
   // Check required fields
   if (!event.kind || !event.created_at || !event.pubkey || !event.id || !event.sig) {

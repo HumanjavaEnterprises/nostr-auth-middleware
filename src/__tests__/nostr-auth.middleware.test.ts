@@ -1,26 +1,24 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NostrAuthMiddleware } from '../middleware/nostr-auth.middleware';
 import { NostrService } from '../services/nostr.service';
 import { NostrEvent, NostrChallenge, VerificationResult, NostrConfig } from '../types/index.js';
 import { Request, Response } from 'express';
-import { jest } from '@jest/globals';
-
-jest.mock('../services/nostr.service');
 
 describe('NostrAuthMiddleware', () => {
   let middleware: NostrAuthMiddleware;
   let mockNostrService: jest.Mocked<NostrService>;
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
-  let mockNext: jest.Mock;
+  let mockNext: vi.Mock;
   let mockConfig: NostrConfig;
 
   beforeEach(() => {
     mockNostrService = {
-      createChallenge: jest.fn(),
-      verifyChallenge: jest.fn(),
-      createEnrollment: jest.fn(),
-      getProfile: jest.fn(),
-      generateToken: jest.fn(),
+      createChallenge: vi.fn(),
+      verifyChallenge: vi.fn(),
+      createEnrollment: vi.fn(),
+      getProfile: vi.fn(),
+      generateToken: vi.fn(),
     } as any;
 
     mockConfig = {
@@ -42,11 +40,11 @@ describe('NostrAuthMiddleware', () => {
     };
 
     mockRes = {
-      status: jest.fn().mockReturnThis() as unknown as Response['status'],
-      json: jest.fn() as unknown as Response['json'],
+      status: vi.fn().mockReturnThis() as unknown as Response['status'],
+      json: vi.fn() as unknown as Response['json'],
     };
 
-    mockNext = jest.fn();
+    mockNext = vi.fn();
   });
 
   describe('handleChallenge', () => {

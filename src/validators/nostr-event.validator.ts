@@ -1,5 +1,5 @@
-import { NostrEvent } from '../utils/types';
-import { verifySignature } from '../utils/crypto.utils';
+import { NostrEvent } from '../types.js';
+import { verifySignature } from '../utils/crypto.utils.js';
 
 export class NostrEventValidator {
   async validateEvent(event: NostrEvent): Promise<boolean> {

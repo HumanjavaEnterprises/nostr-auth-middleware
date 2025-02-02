@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'crypto';
-import { createLogger } from './logger';
+import { createLogger } from './logger.js';
 
 const logger = createLogger('APIKeyUtils');
 

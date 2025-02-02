@@ -67,6 +67,32 @@ This middleware follows key principles that promote security, auditability, and 
 - [API Documentation](docs/api.md) - API endpoints and usage
 - [Security Guide](docs/security.md) - Security best practices and considerations
 - [Automated Tests](docs/automated-tests.md) - Comprehensive test suite documentation
+- [TypeScript Guide](docs/typescript.md) - TypeScript declaration patterns and best practices
+
+### TypeScript Declaration Pattern
+
+For browser-specific TypeScript declarations, we follow a top-level pattern that avoids module augmentation blocks:
+
+```typescript
+// Define interfaces and types at top level
+interface NostrAuthConfig { ... }
+interface NostrEvent { ... }
+
+// Declare classes at top level
+declare class NostrAuthClient { ... }
+
+// Global augmentations after type definitions
+declare global {
+  interface Window {
+    NostrAuthMiddleware: typeof NostrAuthClient;
+  }
+}
+
+// Single export at the end
+export = NostrAuthClient;
+```
+
+This pattern ensures better IDE support and cleaner type declarations. For more details, see our [TypeScript Guide](docs/typescript.md).
 
 ## Testing
 

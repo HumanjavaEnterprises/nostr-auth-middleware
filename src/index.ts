@@ -1,6 +1,6 @@
 /**
  * Main exports for the Nostr Auth Middleware package
- * @module @maiqr/nostr-auth-enroll
+ * @module @humanjavaenterprises/nostr-auth-middleware
  */
 
 // Core middleware
@@ -45,12 +45,14 @@ export { config } from './config.js';
  * 
  * @example
  * ```typescript
- * import { createNostrAuth } from '@maiqr/nostr-auth-enroll';
+ * import { createNostrAuth } from '@humanjavaenterprises/nostr-auth-middleware';
  * 
  * const nostrAuth = createNostrAuth({
  *   supabaseUrl: process.env.SUPABASE_URL,
  *   supabaseKey: process.env.SUPABASE_KEY,
- *   privateKey: process.env.SERVER_PRIVATE_KEY
+ *   privateKey: process.env.SERVER_PRIVATE_KEY,
+ *   port: 3000,
+ *   keyManagementMode: 'local'
  * });
  * 
  * app.use('/auth/nostr', nostrAuth.router);
@@ -60,5 +62,5 @@ export const createNostrAuth = (config: NostrAuthConfig): NostrAuthMiddleware =>
   return new NostrAuthMiddleware(config);
 };
 
-// Default export for CommonJS compatibility
+// Default export
 export default NostrAuthMiddleware;

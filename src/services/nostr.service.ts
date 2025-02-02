@@ -1,9 +1,9 @@
-import { NostrEvent, NostrProfile, NostrChallenge, NostrEnrollment, VerificationResult } from '../types';
+import { NostrEvent, NostrProfile, NostrChallenge, NostrEnrollment, VerificationResult } from '../types.js';
 import { createClient } from '@supabase/supabase-js';
-import { validateEvent } from '../validators/event.validator';
-import { createLogger } from '../utils/logger';
-import { generateJWT } from '../utils/jwt.utils';
-import { config } from '../config';
+import { validateEvent } from '../validators/event.validator.js';
+import { createLogger } from '../utils/logger.js';
+import { generateJWT } from '../utils/jwt.utils.js';
+import { config } from '../config.js';
 
 const logger = createLogger('NostrService');
 

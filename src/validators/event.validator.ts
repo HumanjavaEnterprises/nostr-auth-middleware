@@ -1,9 +1,9 @@
-import { NostrEvent } from '../interfaces/nostr.interface';
-import { verifySignature } from '@humanjavaenterprises/nostr-crypto-utils';
-import { createLogger } from '../utils/logger';
-import { generateEventHash } from '../utils/crypto.utils';
+import { NostrEvent } from '../types.js';
+import { verifySignature } from 'nostr-crypto-utils';
+import { createLogger } from '../utils/logger.js';
+import { generateEventHash } from '../utils/crypto.utils.js';
 import { hexToBytes } from '@noble/hashes/utils';
-import { VerificationResult } from '../types/index.js';
+import { VerificationResult } from '../types.js';
 
 const logger = createLogger('NostrEventValidator');
 

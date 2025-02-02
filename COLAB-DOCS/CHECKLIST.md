@@ -27,6 +27,13 @@ This CHECKLIST.md serves as an active memory document for the nostr-auth-middlew
   - TypeScript types: `./dist/types/index.d.ts`
   - Browser bundle: `./dist/browser/nostr-auth-middleware.min.js`
 
+## TypeScript Declaration Requirements
+- [ ] Browser declarations must use top-level patterns (no module augmentation blocks)
+- [ ] Keep type definitions close to their implementation files
+- [ ] Global augmentations must come after type definitions
+- [ ] Use single export statements at the end of declaration files
+- [ ] Verify IDE compatibility for all TypeScript declarations
+
 ## Build Process
 1. Multiple build targets required:
    - `npm run build:types` - Generate TypeScript declaration files

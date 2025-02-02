@@ -8,6 +8,10 @@ export interface NostrEvent {
   sig: string;
 }
 
+export interface PublicKeyDetails {
+  // Add properties for PublicKeyDetails type
+}
+
 export interface NostrAuthConfig {
   keyManagementMode: 'development' | 'production';
   port?: number;
@@ -23,7 +27,7 @@ export interface NostrAuthConfig {
   supabaseUrl?: string;
   supabaseKey?: string;
   privateKey?: string;
-  publicKey?: string;
+  publicKey?: string | PublicKeyDetails;
 }
 
 export interface NostrChallenge {

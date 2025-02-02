@@ -1,13 +1,13 @@
 import { 
   generateKeyPair as genKeyPair,
   getPublicKey as getNostrPublicKey,
-  getEventHash,
+  calculateEventId as getEventHash,
   signEvent as signNostrEvent,
   verifySignature as verifyNostrSignature
-} from '@humanjavaenterprises/nostr-crypto-utils';
+} from 'nostr-crypto-utils';
 import { hexToBytes } from '@noble/hashes/utils';
 import crypto from 'crypto';
-import { NostrEvent } from '../utils/types';
+import { NostrEvent } from '../types.js';
 
 // Create a serialized event for hashing
 function serializeEvent(event: Partial<NostrEvent>) {
@@ -25,8 +25,9 @@ export function generateKeyPair() {
   return genKeyPair();
 }
 
-export function getPublicKey(privateKey: string): string {
-  return getNostrPublicKey(privateKey);
+export async function getPublicKey(privateKey: string): Promise<string> {
+  const publicKeyDetails = await getNostrPublicKey(privateKey);
+  return publicKeyDetails.toString();
 }
 
 export async function verifySignature(event: NostrEvent): Promise<boolean> {
@@ -41,7 +42,7 @@ export async function signEvent(event: NostrEvent, privateKey: string): Promise<
   return signNostrEvent(event, privateKey);
 }
 
-export function generateChallenge(pubkey: string): NostrEvent {
+export async function generateChallenge(pubkey: string): Promise<NostrEvent> {
   const now = Math.floor(Date.now() / 1000);
   const event: NostrEvent = {
     kind: 22242,
@@ -54,7 +55,7 @@ export function generateChallenge(pubkey: string): NostrEvent {
   };
 
   event.id = getEventHash(event);
-  event.sig = signNostrEvent(event, pubkey) as unknown as string;
+  event.sig = await signNostrEvent(event, pubkey);
 
   return event;
 }
@@ -66,7 +67,7 @@ export async function signChallenge(challenge: string, privateKey: string): Prom
     created_at: now,
     tags: [['challenge', challenge]],
     content: 'Authentication response',
-    pubkey: getPublicKey(privateKey),
+    pubkey: await getPublicKey(privateKey),
     id: '',
     sig: ''
   };
@@ -79,7 +80,7 @@ export async function signChallenge(challenge: string, privateKey: string): Prom
 export async function generateChallengeServer(serverPrivateKey: string, clientPubkey: string): Promise<NostrEvent> {
   const timestamp = Math.floor(Date.now() / 1000);
   const randomValue = crypto.randomBytes(32).toString('hex');
-  const pubkey = getPublicKey(serverPrivateKey);
+  const pubkey = await getPublicKey(serverPrivateKey);
   
   const event: NostrEvent = {
     kind: 22242,

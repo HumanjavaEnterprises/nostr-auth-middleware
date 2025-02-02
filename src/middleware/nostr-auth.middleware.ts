@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction, Router } from 'express';
-import { NostrService } from '../services/nostr.service';
+import { NostrService } from '../services/nostr.service.js';
 import { NostrEvent, NostrConfig } from '../types/index.js';
 import { createClient } from '@supabase/supabase-js';
-import { createLogger } from '../utils/logger';
+import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('NostrAuthMiddleware');
 
@@ -110,7 +110,11 @@ export class NostrAuthMiddleware {
     }
   }
 
-  getRouter(): Router {
+  /**
+   * Get the Express router instance
+   * @returns The configured Express router
+   */
+  public getRouter(): Router {
     return this.router;
   }
 }

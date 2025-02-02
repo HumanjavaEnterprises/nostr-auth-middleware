@@ -66,6 +66,29 @@ This document outlines the key architectural decisions, development patterns, an
   ```
 - Browser bundle available at `dist/browser/nostr-auth-middleware.min.js`
 
+### TypeScript Declaration Patterns
+- Browser-specific declarations in `browser.d.ts` follow top-level pattern:
+  ```typescript
+  // Define interfaces and types at top level
+  interface NostrAuthConfig { ... }
+  interface NostrEvent { ... }
+  
+  // Declare classes at top level
+  declare class NostrAuthClient { ... }
+  
+  // Global augmentations after type definitions
+  declare global {
+    interface Window {
+      NostrAuthMiddleware: typeof NostrAuthClient;
+    }
+  }
+  
+  // Single export at the end
+  export = NostrAuthClient;
+  ```
+- Avoid module augmentation blocks (`declare module`) in browser declarations
+- Keep type definitions close to their implementation files
+
 ### Import/Export Patterns
 1. **Local Imports**
    - Must include `.js` extension for ESM compatibility

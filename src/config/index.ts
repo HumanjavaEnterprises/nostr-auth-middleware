@@ -91,7 +91,7 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
   if (process.env.SERVER_PRIVATE_KEY) {
     const keyPair = await generateKeyPair();
     loadedConfig.privateKey = process.env.SERVER_PRIVATE_KEY;
-    loadedConfig.publicKey = keyPair.publicKey;
+    loadedConfig.publicKey = keyPair.publicKey.toString();
     logger.info('Loaded server keys from environment');
     return loadedConfig;
   }
@@ -121,7 +121,7 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
   logger.warn('No server keys found - generating new keypair');
   const keyPair = await generateKeyPair();
   loadedConfig.privateKey = Buffer.from(keyPair.privateKey).toString('hex');
-  loadedConfig.publicKey = keyPair.publicKey;
+  loadedConfig.publicKey = keyPair.publicKey.toString();
 
   // Save to .env file in development
   if (loadedConfig.testMode) {

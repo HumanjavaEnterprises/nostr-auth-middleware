@@ -1,120 +1,70 @@
 {
   "name": "@humanjavaenterprises/nostr-auth-middleware",
   "version": "0.2.7",
-  "description": "A comprehensive Nostr authentication and enrollment middleware for web applications, with TypeScript support and Supabase integration",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "A focused, security-first authentication middleware for Nostr applications",
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/types/index.d.ts"
     },
-    "./react": {
-      "import": "./dist/react/index.js",
-      "types": "./dist/react/index.d.ts"
+    "./browser": {
+      "import": "./dist/browser/nostr-auth-middleware.min.js",
+      "types": "./dist/types/browser.d.ts"
     }
   },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "browser": "./dist/browser/nostr-auth-middleware.min.js",
   "files": [
     "dist",
     "LICENSE",
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:auth": "./scripts/test-auth.sh",
-    "test:live": "ts-node scripts/test-auth-live.ts",
-    "create-test-user": "ts-node scripts/create-test-user.ts",
-    "lint": "eslint src --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "prepublishOnly": "npm run build",
-    "prepare": "npm run build",
-    "pm2:start": "pm2 start ecosystem.config.cjs",
-    "pm2:stop": "pm2 stop nostr-auth-middleware",
-    "pm2:restart": "pm2 restart nostr-auth-middleware",
-    "pm2:delete": "pm2 delete nostr-auth-middleware",
-    "pm2:logs": "pm2 logs nostr-auth-middleware",
-    "pm2:status": "pm2 status nostr-auth-middleware",
-    "deploy:setup": "bash ./scripts/setup.sh",
-    "deploy:prod": "bash ./scripts/deploy.sh"
-  },
-  "keywords": [
-    "nostr",
-    "authentication",
-    "middleware",
-    "enrollment",
-    "typescript",
-    "supabase",
-    "jwt",
-    "express",
-    "react",
-    "web3",
-    "crypto"
-  ],
-  "author": {
-    "name": "MaiQR.app",
-    "email": "support@maiqr.app",
-    "url": "https://maiqr.app"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/maiqr/nostr-auth-middleware.git"
-  },
-  "bugs": {
-    "url": "https://github.com/maiqr/nostr-auth-middleware/issues"
-  },
-  "homepage": "https://github.com/maiqr/nostr-auth-middleware#readme",
-  "engines": {
-    "node": ">=16.0.0"
-  },
-  "publishConfig": {
-    "access": "public"
+    "build": "npm run build:types && npm run build:cjs && npm run build:esm && npm run build:browser",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:browser": "webpack --config webpack.config.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "@noble/curves": "^1.3.0",
     "@noble/hashes": "^1.3.3",
     "@noble/secp256k1": "^2.0.0",
-    "@supabase/supabase-js": "^2.39.1",
-    "@types/express-rate-limit": "^6.0.2",
-    "@humanjavaenterprises/nostr-crypto-utils": "file:../nostr-crypto-utils",
-    "@humanjavaenterprises/nostr-nsec-seedphrase-library": "file:../nostr-nsec-seedphrase-library",
-    "axios": "^1.7.8",
+    "@supabase/supabase-js": "^2.39.3",
+    "@types/jsonwebtoken": "^9.0.8",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "express-rate-limit": "^7.4.1",
-    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
-    "path-to-regexp": "^6.2.1",
-    "winston": "^3.11.0",
-    "zod": "^3.22.4"
+    "nostr-crypto-utils": "^0.4.15",
+    "winston": "^3.11.0"
   },
   "devDependencies": {
-    "@jest/globals": "^29.7.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
-    "@types/jest": "^29.5.14",
-    "@types/jsonwebtoken": "^9.0.5",
-    "@types/node": "^20.17.9",
-    "@typescript-eslint/eslint-plugin": "^6.17.0",
-    "@typescript-eslint/parser": "^6.17.0",
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^6.18.1",
+    "@typescript-eslint/parser": "^6.18.1",
+    "@vitest/coverage-v8": "^1.0.0",
     "eslint": "^8.56.0",
-    "jest": "^29.7.0",
-    "npm-audit-resolver": "^3.0.0-RC.0",
-    "prettier": "^3.1.1",
-    "ts-jest": "^29.1.1",
+    "rimraf": "^5.0.5",
+    "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.3.3"
-  },
-  "peerDependencies": {
-    "nostr-tools": "^2.10.4"
-  },
-  "resolutions": {
-    "path-to-regexp": "^6.2.1"
+    "typescript": "^5.3.3",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
   }
 }

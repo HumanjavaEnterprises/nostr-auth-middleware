@@ -1,14 +1,16 @@
-import jwt from 'jsonwebtoken';
-import { createLogger } from './logger';
+import jwt, { SignOptions, Secret } from 'jsonwebtoken';
+import { createLogger } from './logger.js';
 
 const logger = createLogger('JWTUtils');
 
-export function generateJWT(pubkey: string, secret: string, expiresIn: string): string {
+type JWTExpiresIn = `${number}h` | `${number}m` | `${number}s` | `${number}d`;
+
+export function generateJWT(pubkey: string, secret: string, expiresIn: JWTExpiresIn): string {
   try {
     return jwt.sign({ pubkey }, secret, { expiresIn });
   } catch (error) {
-    logger.error('Error generating JWT:', { error: error instanceof Error ? error.message : String(error) });
-    throw new Error('Failed to generate JWT');
+    logger.error('Error generating JWT:', error);
+    throw error;
   }
 }
 

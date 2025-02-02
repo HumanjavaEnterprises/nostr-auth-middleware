@@ -1,5 +1,5 @@
-import { NostrAuthConfig } from './types';
-import { createLogger } from './utils/logger';
+import { NostrAuthConfig } from './types.js';
+import { createLogger } from './utils/logger.js';
 
 const logger = createLogger('Config');
 

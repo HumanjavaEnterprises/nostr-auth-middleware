@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Configuration management for the Nostr Auth Middleware
+ * Handles loading and managing configuration from environment variables and external sources
+ * @module config
+ */
+
 import { createLogger } from '../utils/logger.js';
 import { generateKeyPair } from '../utils/crypto.utils.js';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -8,12 +14,24 @@ import { NostrConfig } from '../types/index.js';
 
 const logger = createLogger('Config');
 
+/**
+ * Interface for key pair configuration
+ * @interface KeyConfig
+ */
 export interface KeyConfig {
+  /** Private key in hex format */
   privateKey: string;
+  /** Public key in hex format */
   publicKey: string;
 }
 
-// Initialize config with default values
+/**
+ * Default configuration object
+ * @type {NostrConfig}
+ * @description
+ * Contains default values for all configuration options.
+ * Values can be overridden by environment variables.
+ */
 export const config: NostrConfig = {
   // Server config
   port: parseInt(process.env.PORT || '3002'),
@@ -46,6 +64,22 @@ export const config: NostrConfig = {
   challengePrefix: 'nostr:auth:'
 };
 
+/**
+ * Loads configuration from environment variables and external sources
+ * @param {string} [envPath] - Optional path to .env file
+ * @returns {Promise<NostrConfig>} Loaded configuration object
+ * @throws {Error} If required configuration is missing or invalid
+ * @description
+ * Configuration loading process:
+ * 1. Load environment variables from .env file if provided
+ * 2. Load server keys from environment or generate new ones
+ * 3. In production, attempt to load keys from Supabase
+ * 4. Apply defaults for missing values
+ * @security
+ * - Ensure JWT_SECRET is properly set in production
+ * - Never commit .env files or hard-coded secrets
+ * - Use secure key management in production
+ */
 export async function loadConfig(envPath?: string): Promise<NostrConfig> {
   // Load environment variables
   if (envPath) {
@@ -100,58 +134,40 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
   if (!loadedConfig.testMode && loadedConfig.supabaseUrl && loadedConfig.supabaseKey) {
     const supabase = createClient(loadedConfig.supabaseUrl, loadedConfig.supabaseKey);
     try {
-      const { data, error } = await supabase
+      const { data: keys } = await supabase
         .from('server_keys')
         .select('private_key, public_key')
         .single();
 
-      if (error) throw error;
-      if (data) {
-        loadedConfig.privateKey = data.private_key;
-        loadedConfig.publicKey = data.public_key;
+      if (keys) {
+        loadedConfig.privateKey = keys.private_key;
+        loadedConfig.publicKey = keys.public_key;
         logger.info('Loaded server keys from Supabase');
         return loadedConfig;
       }
     } catch (error) {
-      logger.warn('Failed to load keys from Supabase:', error);
+      logger.error('Failed to load keys from Supabase:', error);
     }
   }
 
   // Generate new keys if none exist
-  logger.warn('No server keys found - generating new keypair');
-  const keyPair = await generateKeyPair();
-  loadedConfig.privateKey = Buffer.from(keyPair.privateKey).toString('hex');
-  loadedConfig.publicKey = keyPair.publicKey.toString();
+  if (!loadedConfig.privateKey || !loadedConfig.publicKey) {
+    const keyPair = await generateKeyPair();
+    loadedConfig.privateKey = keyPair.privateKey.toString();
+    loadedConfig.publicKey = keyPair.publicKey.toString();
+    logger.info('Generated new server keys');
 
-  // Save to .env file in development
-  if (loadedConfig.testMode) {
-    try {
-      const envPath = resolve(process.cwd(), '.env');
-      const envContent = readFileSync(envPath, 'utf8');
-      const updatedContent = envContent
-        .replace(/^SERVER_PRIVATE_KEY=.*$/m, `SERVER_PRIVATE_KEY=${loadedConfig.privateKey}`)
-        .replace(/^SERVER_PUBLIC_KEY=.*$/m, `SERVER_PUBLIC_KEY=${loadedConfig.publicKey}`);
-      writeFileSync(envPath, updatedContent);
-      logger.info('Saved new server keys to .env file');
-    } catch (error) {
-      logger.warn('Failed to save keys to .env file:', error);
-    }
-  }
-
-  // Save to Supabase in production
-  else if (loadedConfig.supabaseUrl && loadedConfig.supabaseKey) {
-    const supabase = createClient(loadedConfig.supabaseUrl, loadedConfig.supabaseKey);
-    try {
-      const { error } = await supabase
-        .from('server_keys')
-        .upsert({
-          private_key: loadedConfig.privateKey,
-          public_key: loadedConfig.publicKey
-        });
-      if (error) throw error;
-      logger.info('Saved new server keys to Supabase');
-    } catch (error) {
-      logger.warn('Failed to save keys to Supabase:', error);
+    // Save to Supabase if available
+    if (!loadedConfig.testMode && loadedConfig.supabaseUrl && loadedConfig.supabaseKey) {
+      const supabase = createClient(loadedConfig.supabaseUrl, loadedConfig.supabaseKey);
+      try {
+        await supabase
+          .from('server_keys')
+          .insert([{ private_key: loadedConfig.privateKey, public_key: loadedConfig.publicKey }]);
+        logger.info('Saved new server keys to Supabase');
+      } catch (error) {
+        logger.error('Failed to save keys to Supabase:', error);
+      }
     }
   }
 

@@ -1,16 +1,17 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
-const config = {
+export default {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
-  extensionsToTreatAsEsm: ['.ts'],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
-    '@humanjavaenterprises/nostr-crypto-utils': '<rootDir>/node_modules/@humanjavaenterprises/nostr-crypto-utils/dist/index.js'
+    '@humanjavaenterprises/nostr-crypto-utils': '@humanjavaenterprises/nostr-crypto-utils/dist/esm/index.js'
   },
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', {
+    '^.+\\.(t|j)sx?$': ['ts-jest', {
       useESM: true,
+      tsconfig: 'tsconfig.json'
     }],
   },
   transformIgnorePatterns: [
@@ -20,10 +21,6 @@ const config = {
     '**/__tests__/**/*.test.ts',
     '**/?(*.)+(spec|test).ts'
   ],
-  collectCoverage: true,
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov'],
-  moduleFileExtensions: ['ts', 'js']
-};
-
-export default config;
+  verbose: true,
+  testTimeout: 10000
+}

@@ -2,7 +2,7 @@
 
 A focused, security-first authentication middleware for Nostr applications.
 
-⚠️ **Important Security Notice**
+**Important Security Notice**
 
 This library handles cryptographic keys and authentication tokens that are critical for securing your Nostr application and user data. Any private keys (`nsec`) or authentication tokens must be stored and managed with the utmost security and care.
 
@@ -23,38 +23,38 @@ This middleware follows key principles that promote security, auditability, and 
 - **Focused Scope**: Does one thing well - Nostr authentication
 
 ### 3. Integration Ready
-```plaintext
-┌─────────────────┐
-│   Client App    │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Nostr Auth     │ ◄── This Service
-│   Service       │     Simple Auth Only
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  App Platform   │ ◄── Your Business Logic
-│     API         │     User Tiers
-└─────────────────┘     Rate Limits
+```
++---------------+
+|  Client App  |
++-------+-------+
+        |
+        v
++---------------+
+| Nostr Auth    | <-- This Service
+|  Service      |     Simple Auth Only
++-------+-------+
+        |
+        v
++---------------+
+| App Platform  | <-- Your Business Logic
+|    API        |     User Tiers
++---------------+     Rate Limits
 ```
 
 ## Core Features
 
-- 🔑 NIP-07 Compatible Authentication
-- 📝 Secure User Enrollment with Nostr
-- ⚡ Comprehensive Event Validation
-- 🔒 Advanced Cryptographic Operations
-- 🗄️ Supabase Integration for Data Persistence
-- 🎫 JWT-based Session Management
-- 🔄 Profile Management & Synchronization
-- 📊 Detailed Logging and Monitoring
-- 🔐 Automatic Key Management
-- 🚀 Environment-Aware Deployment
-- 🛠️ Development & Production Modes
-- 📁 Automated Directory Management
+- Authentication: NIP-07 Compatible Authentication
+- Enrollment: Secure User Enrollment with Nostr
+- Validation: Comprehensive Event Validation
+- Cryptography: Advanced Cryptographic Operations
+- Data Persistence: Supabase Integration for Data Persistence
+- Session Management: JWT-based Session Management
+- Profile Management: Profile Management & Synchronization
+- Logging and Monitoring: Detailed Logging and Monitoring
+- Key Management: Automatic Key Management
+- Deployment: Environment-Aware Deployment
+- Modes: Development & Production Modes
+- Directory Management: Automated Directory Management
 
 ## Documentation
 
@@ -145,11 +145,11 @@ This provides a secure authentication method that:
 
 The middleware includes comprehensive test coverage for all core functionality:
 
-- ✅ Challenge Generation & Verification
-- ✅ Profile Fetching
-- ✅ Enrollment & Verification
-- ✅ Error Handling
-- ✅ Router Integration
+- Challenge Generation & Verification
+- Profile Fetching
+- Enrollment & Verification
+- Error Handling
+- Router Integration
 
 Current test coverage: 94.8%
 

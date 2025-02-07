@@ -4,7 +4,7 @@
  * @module jwt-utils
  */
 
-import jwt, { SignOptions, Secret } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { createLogger } from './logger.js';
 
 const logger = createLogger('JWTUtils');

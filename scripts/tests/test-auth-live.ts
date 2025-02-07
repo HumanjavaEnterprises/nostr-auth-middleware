@@ -87,9 +87,9 @@ async function testEnvironmentSetup(config: TestConfig) {
   if (config.isProduction) {
     // Production-specific checks
     try {
-      fs.accessSync(config.deployDir, fs.constants.R_OK | fs.constants.W_OK);
+      await fs.promises.access(config.deployDir, fs.constants.W_OK);
       console.log('✓ Production directory permissions are correct');
-    } catch (error) {
+    } catch {
       throw new Error('Production directory permissions are incorrect');
     }
   }

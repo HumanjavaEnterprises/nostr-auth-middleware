@@ -6,9 +6,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { generateKeyPair } from '../utils/crypto.utils.js';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { writeFileSync, readFileSync } from 'fs';
-import { resolve } from 'path';
+import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { NostrConfig } from '../types/index.js';
 
@@ -136,26 +134,25 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
     try {
       const { data: keys } = await supabase
         .from('server_keys')
-        .select('private_key, public_key')
+        .select()
         .single();
 
       if (keys) {
         loadedConfig.privateKey = keys.private_key;
         loadedConfig.publicKey = keys.public_key;
         logger.info('Loaded server keys from Supabase');
-        return loadedConfig;
       }
     } catch (error) {
-      logger.error('Failed to load keys from Supabase:', error);
+      logger.warn('Failed to load server keys from Supabase:', error);
     }
   }
 
-  // Generate new keys if none exist
+  // Generate new keys if not found
   if (!loadedConfig.privateKey || !loadedConfig.publicKey) {
-    const keyPair = await generateKeyPair();
-    loadedConfig.privateKey = keyPair.privateKey.toString();
-    loadedConfig.publicKey = keyPair.publicKey.toString();
-    logger.info('Generated new server keys');
+    logger.info('Generating new server keys');
+    const { privateKey, publicKey } = await generateKeyPair();
+    loadedConfig.privateKey = privateKey;
+    loadedConfig.publicKey = publicKey;
 
     // Save to Supabase if available
     if (!loadedConfig.testMode && loadedConfig.supabaseUrl && loadedConfig.supabaseKey) {

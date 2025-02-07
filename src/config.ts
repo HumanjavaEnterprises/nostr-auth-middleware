@@ -1,4 +1,4 @@
-import { NostrAuthConfig } from './types.js';
+import { NostrAuthConfig, JWTExpiresIn } from './types.js';
 import { createLogger } from './utils/logger.js';
 
 const logger = createLogger('Config');
@@ -40,7 +40,7 @@ export const config: NostrAuthConfig = {
   testMode: process.env.TEST_MODE === 'true',
   logLevel: process.env.LOG_LEVEL || 'info',
   jwtSecret: getEnvWithWarning('JWT_SECRET') || 'default-secret-do-not-use-in-production',
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
+  jwtExpiresIn: (process.env.JWT_EXPIRES_IN || '24h') as JWTExpiresIn,
   supabaseUrl: getEnvWithWarning('SUPABASE_URL'),
   supabaseKey: getEnvWithWarning('SUPABASE_KEY'),
   privateKey: validatePrivateKey(process.env.SERVER_PRIVATE_KEY),

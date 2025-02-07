@@ -9,7 +9,7 @@ export class NostrEventValidator {
 
     try {
       return await verifySignature(event);
-    } catch (error) {
+    } catch {
       return false;
     }
   }

@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { NostrAuthMiddleware, createNostrAuth } from '../index';
+import { expect, describe, it } from 'vitest';
+import { NostrAuthMiddleware, createNostrAuth } from '../index.js';
+import type { NostrAuthConfig } from '../types.js';
 
 describe('Module exports', () => {
   it('should export NostrAuthMiddleware class', () => {
@@ -13,16 +14,16 @@ describe('Module exports', () => {
   });
 
   it('should create a valid middleware instance', () => {
-    const config = {
-      supabaseUrl: 'https://test.supabase.co',
-      supabaseKey: 'test-key',
-      privateKey: 'test-private-key',
-      port: 3000,
+    const config: Partial<NostrAuthConfig> = {
+      jwtSecret: 'test-secret-key',
+      jwtExpiresIn: '24h' as const,
+      eventTimeoutMs: 5000,
       keyManagementMode: 'development' as const
     };
 
-    const middleware = createNostrAuth(config);
+    const middleware = createNostrAuth(config as NostrAuthConfig);
     expect(middleware).toBeInstanceOf(NostrAuthMiddleware);
-    expect(middleware.getRouter()).toBeDefined();
+    expect(middleware.getRouter).toBeDefined();
+    expect(typeof middleware.getRouter).toBe('function');
   });
 });

@@ -5,7 +5,7 @@ import { createLogger } from './utils/logger.js';
 import { NostrAuthMiddleware } from './middleware/nostr-auth.middleware.js';
 import { validateApiKey, ipWhitelist, rateLimiter, securityHeaders } from './middleware/security.middleware.js';
 import { config } from './config/index.js';
-import { NostrConfig } from './types/index.js';
+import { NostrAuthConfig, JWTExpiresIn } from './types.js';
 
 const logger = createLogger('Server');
 const app = express();
@@ -42,19 +42,15 @@ app.get('/health', (req, res) => {
 });
 
 // Initialize Nostr auth middleware
-const nostrConfig: NostrConfig = {
+const nostrConfig: NostrAuthConfig = {
   port: config.port,
   nodeEnv: config.nodeEnv,
-  nostrRelays: config.nostrRelays ?? [
-    'wss://relay.maiqr.app',
-    'wss://relay.damus.io',
-    'wss://relay.nostr.band'
-  ],
   eventTimeoutMs: 5000,
   challengePrefix: 'nostr:auth:',
   supabaseUrl: config.supabaseUrl,
   supabaseKey: config.supabaseKey,
-  jwtSecret: config.jwtSecret,
+  jwtSecret: config.jwtSecret || '',
+  jwtExpiresIn: '24h' as JWTExpiresIn,
   testMode: config.testMode,
   privateKey: config.privateKey,
   publicKey: config.publicKey,
@@ -67,7 +63,7 @@ const nostrAuth = new NostrAuthMiddleware(nostrConfig);
 app.use('/auth/nostr', validateApiKey, nostrAuth.getRouter());
 
 // Error handling
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });

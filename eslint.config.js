@@ -5,11 +5,18 @@ import tsparser from '@typescript-eslint/parser';
 export default [
   {
     files: ['**/*.ts'],
+    ignores: ['dist/**', 'node_modules/**'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module'
+      },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        window: 'readonly',
+        jest: 'readonly'
       }
     },
     plugins: {
@@ -20,7 +27,13 @@ export default [
       ...tseslint.configs.recommended.rules,
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }]
+      '@typescript-eslint/no-unused-vars': ['error', { 
+        'argsIgnorePattern': '^_',
+        'varsIgnorePattern': '^_'
+      }],
+      '@typescript-eslint/no-empty-interface': ['error', {
+        'allowSingleExtends': true
+      }]
     }
   }
 ];

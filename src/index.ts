@@ -5,7 +5,7 @@
 
 // Core middleware
 import { NostrAuthMiddleware } from './middleware/nostr-auth.middleware.js';
-import type { NostrAuthConfig } from './types/index.js';
+import type { NostrAuthConfig, JWTExpiresIn } from './types.js';
 
 // Re-export middleware
 export { NostrAuthMiddleware };
@@ -16,8 +16,9 @@ export type {
   NostrChallenge,
   NostrProfile,
   NostrEnrollment,
-  VerificationResult
-} from './types/index.js';
+  VerificationResult,
+  JWTExpiresIn
+} from './types.js';
 
 export type { NostrEvent } from './utils/types.js';
 
@@ -59,7 +60,12 @@ export { config } from './config.js';
  * ```
  */
 export const createNostrAuth = (config: NostrAuthConfig): NostrAuthMiddleware => {
-  return new NostrAuthMiddleware(config);
+  // Ensure jwtExpiresIn is properly typed
+  const typedConfig: NostrAuthConfig = {
+    ...config,
+    jwtExpiresIn: config.jwtExpiresIn as JWTExpiresIn
+  };
+  return new NostrAuthMiddleware(typedConfig);
 };
 
 // Default export

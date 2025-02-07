@@ -11,26 +11,7 @@ import {
   signEvent as signNostrEvent,
   verifySignature as verifyNostrSignature
 } from 'nostr-crypto-utils';
-import { hexToBytes } from '@noble/hashes/utils';
-import crypto from 'crypto';
 import { NostrEvent } from '../types.js';
-
-/**
- * Creates a serialized event string for hashing
- * @param {Partial<NostrEvent>} event - The event to serialize
- * @returns {string} JSON string of the serialized event
- * @private
- */
-function serializeEvent(event: Partial<NostrEvent>) {
-    return JSON.stringify([
-        0,
-        event.pubkey,
-        event.created_at,
-        event.kind,
-        event.tags,
-        event.content
-    ]);
-}
 
 /**
  * Generates a new Nostr key pair
@@ -99,59 +80,4 @@ export async function generateChallenge(pubkey: string): Promise<NostrEvent> {
   event.sig = await signNostrEvent(event, pubkey);
 
   return event;
-}
-
-/**
- * Signs a challenge response event
- * @param {string} challenge - The challenge string to respond to
- * @param {string} privateKey - The private key to sign with
- * @returns {Promise<NostrEvent>} The signed challenge response event
- */
-export async function signChallenge(challenge: string, privateKey: string): Promise<NostrEvent> {
-  const now = Math.floor(Date.now() / 1000);
-  const event: NostrEvent = {
-    kind: 22242,
-    created_at: now,
-    tags: [['challenge', challenge]],
-    content: 'Authentication response',
-    pubkey: await getPublicKey(privateKey),
-    id: '',
-    sig: ''
-  };
-
-  event.id = getEventHash(event);
-  const signedEvent = await signNostrEvent(event, privateKey);
-  return signedEvent;
-}
-
-/**
- * Generates a server-side challenge event for client authentication
- * @param {string} serverPrivateKey - The server's private key
- * @param {string} clientPubkey - The client's public key
- * @returns {Promise<NostrEvent>} The generated server challenge event
- */
-export async function generateChallengeServer(serverPrivateKey: string, clientPubkey: string): Promise<NostrEvent> {
-  const timestamp = Math.floor(Date.now() / 1000);
-  const randomValue = crypto.randomBytes(32).toString('hex');
-  const pubkey = await getPublicKey(serverPrivateKey);
-  
-  const event: NostrEvent = {
-    kind: 22242,
-    created_at: timestamp,
-    tags: [
-      ['p', clientPubkey],
-      ['relay', 'wss://relay.damus.io'],
-      ['challenge', randomValue]
-    ],
-    content: '',
-    pubkey,
-    id: '',
-    sig: ''
-  };
-
-  // Generate event hash and sign using our crypto utils
-  event.id = generateEventHash(event);
-  const signedEvent = await signNostrEvent(event, serverPrivateKey);
-
-  return signedEvent;
 }

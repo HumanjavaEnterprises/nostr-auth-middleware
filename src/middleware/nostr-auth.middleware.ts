@@ -5,11 +5,16 @@
 
 import { Request, Response, NextFunction, Router } from 'express';
 import { NostrService } from '../services/nostr.service.js';
-import { NostrEvent, NostrConfig } from '../types/index.js';
-import { createClient } from '@supabase/supabase-js';
+import { NostrEvent, NostrAuthConfig } from '../types.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('NostrAuthMiddleware');
+
+const DEFAULT_CONFIG: Required<Pick<NostrAuthConfig, 'keyManagementMode' | 'eventTimeoutMs' | 'jwtExpiresIn'>> = {
+  keyManagementMode: 'development',
+  eventTimeoutMs: 300000, // 5 minutes
+  jwtExpiresIn: '1h'
+};
 
 /**
  * Express middleware class for handling Nostr authentication flows
@@ -23,12 +28,25 @@ export class NostrAuthMiddleware {
 
   /**
    * Creates a new NostrAuthMiddleware instance
-   * @param {NostrConfig} config - Configuration options for the middleware
+   * @param {Partial<NostrAuthConfig>} config - Configuration options for the middleware
    * @param {NostrService} [nostrService] - Optional NostrService instance for testing
    */
-  constructor(config: NostrConfig, nostrService?: NostrService) {
-    const supabase = createClient(config.supabaseUrl || '', config.supabaseKey || '');
-    this.nostrService = nostrService || new NostrService(config);
+  constructor(config: Partial<NostrAuthConfig>, nostrService?: NostrService) {
+    if (!config.jwtSecret) {
+      throw new Error('JWT secret is required');
+    }
+
+    // Ensure required properties are present with defaults
+    const fullConfig = {
+      ...DEFAULT_CONFIG,
+      ...config,
+      jwtSecret: config.jwtSecret,
+      eventTimeoutMs: config.eventTimeoutMs || DEFAULT_CONFIG.eventTimeoutMs,
+      jwtExpiresIn: config.jwtExpiresIn || DEFAULT_CONFIG.jwtExpiresIn,
+      keyManagementMode: config.keyManagementMode || DEFAULT_CONFIG.keyManagementMode
+    } as NostrAuthConfig;
+    
+    this.nostrService = nostrService || new NostrService(fullConfig);
     this.router = Router();
     this.setupRoutes();
   }
@@ -40,7 +58,6 @@ export class NostrAuthMiddleware {
   private setupRoutes() {
     this.router.post('/challenge/:pubkey', this.handleChallenge.bind(this));
     this.router.post('/verify', this.handleVerification.bind(this));
-    this.router.post('/enroll', this.handleEnrollment.bind(this));
     this.router.get('/profile/:pubkey', this.handleProfileFetch.bind(this));
   }
 
@@ -50,7 +67,6 @@ export class NostrAuthMiddleware {
    * @param {Response} res - Express response object
    * @param {NextFunction} next - Express next function
    * @returns {Promise<void>}
-   * @throws {Error} When challenge creation fails
    */
   async handleChallenge(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -74,7 +90,6 @@ export class NostrAuthMiddleware {
    * @param {Response} res - Express response object
    * @param {NextFunction} next - Express next function
    * @returns {Promise<void>}
-   * @throws {Error} When verification fails
    */
   async handleVerification(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -104,42 +119,11 @@ export class NostrAuthMiddleware {
   }
 
   /**
-   * Handles user enrollment requests
+   * Handles profile fetching requests
    * @param {Request} req - Express request object
    * @param {Response} res - Express response object
    * @param {NextFunction} next - Express next function
    * @returns {Promise<void>}
-   * @throws {Error} When enrollment fails
-   */
-  async handleEnrollment(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const { event } = req.body as { event: NostrEvent };
-      if (!event) {
-        res.status(400).json({ error: 'Missing event' });
-        return;
-      }
-
-      const profile = await this.nostrService.getProfile(event.pubkey);
-      if (!profile) {
-        res.status(404).json({ error: 'Profile not found' });
-        return;
-      }
-
-      const enrollment = await this.nostrService.createEnrollment(event.pubkey, profile);
-      res.json({ enrollment });
-    } catch (error) {
-      logger.error('Error handling enrollment:', { error: error instanceof Error ? error.message : String(error) });
-      next(error);
-    }
-  }
-
-  /**
-   * Handles profile fetch requests
-   * @param {Request} req - Express request object
-   * @param {Response} res - Express response object
-   * @param {NextFunction} next - Express next function
-   * @returns {Promise<void>}
-   * @throws {Error} When profile fetch fails
    */
   async handleProfileFetch(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -155,18 +139,18 @@ export class NostrAuthMiddleware {
         return;
       }
 
-      res.json({ profile });
+      res.json(profile);
     } catch (error) {
-      logger.error('Error handling profile fetch:', { error: error instanceof Error ? error.message : String(error) });
+      logger.error('Error fetching profile:', { error: error instanceof Error ? error.message : String(error) });
       next(error);
     }
   }
 
   /**
-   * Get the Express router instance
-   * @returns The configured Express router
+   * Gets the Express router instance
+   * @returns {Router} Express router
    */
-  public getRouter(): Router {
+  getRouter(): Router {
     return this.router;
   }
 }

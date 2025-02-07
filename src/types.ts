@@ -2,6 +2,9 @@
  * Core type definitions for Nostr authentication
  */
 
+/**
+ * Base Nostr event interface
+ */
 export interface NostrEvent {
   id?: string;
   pubkey?: string;
@@ -12,22 +15,42 @@ export interface NostrEvent {
   sig?: string;
 }
 
+/**
+ * Public key details interface
+ */
 export interface PublicKeyDetails {
-  // Add properties for PublicKeyDetails type
+  key: string;
+  algorithm: string;
+  format: string;
 }
 
+/**
+ * Type for JWT expiration time format
+ * @example
+ * const expiresIn: JWTExpiresIn = '24h'; // 24 hours
+ * const expiresIn: JWTExpiresIn = '30m'; // 30 minutes
+ * const expiresIn: JWTExpiresIn = '7d';  // 7 days
+ */
+export type JWTExpiresIn = `${number}h` | `${number}m` | `${number}s` | `${number}d`;
+
+/**
+ * Configuration interface for Nostr authentication middleware
+ */
 export interface NostrAuthConfig {
+  // Required properties
+  jwtSecret: string;
+  jwtExpiresIn: JWTExpiresIn;
+  eventTimeoutMs: number;
   keyManagementMode: 'development' | 'production';
+
+  // Optional properties with defaults
   port?: number;
   nodeEnv?: string;
   corsOrigin?: string;
   corsCredentials?: boolean;
-  eventTimeoutMs?: number;
   challengePrefix?: string;
   testMode?: boolean;
   logLevel?: string;
-  jwtSecret: string;
-  jwtExpiresIn?: string;
   supabaseUrl?: string;
   supabaseKey?: string;
   privateKey?: string;
@@ -38,6 +61,9 @@ export interface NostrAuthConfig {
   timeout?: number;
 }
 
+/**
+ * Challenge interface for Nostr authentication
+ */
 export interface NostrChallenge {
   id: string;
   challenge: string;
@@ -46,6 +72,9 @@ export interface NostrChallenge {
   pubkey: string;
 }
 
+/**
+ * Profile interface for Nostr users
+ */
 export interface NostrProfile {
   id: string;
   pubkey: string;
@@ -56,6 +85,9 @@ export interface NostrProfile {
   updated_at: number;
 }
 
+/**
+ * Enrollment interface for Nostr users
+ */
 export interface NostrEnrollment {
   id: string;
   pubkey: string;
@@ -66,9 +98,12 @@ export interface NostrEnrollment {
   updated_at: number;
 }
 
+/**
+ * Result interface for verification operations
+ */
 export interface VerificationResult {
   success: boolean;
   error?: string;
   pubkey?: string;
-  data?: any;
+  data?: Record<string, unknown>;
 }

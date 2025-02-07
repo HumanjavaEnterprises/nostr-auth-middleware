@@ -3,21 +3,21 @@
   "version": "0.2.7",
   "description": "A focused, security-first authentication middleware for Nostr applications",
   "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "browser": "./dist/browser/nostr-auth-middleware.min.js",
   "exports": {
     ".": {
+      "types": "./dist/types/index.d.ts",
       "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js",
-      "types": "./dist/types/index.d.ts"
+      "require": "./dist/cjs/index.js"
     },
     "./browser": {
       "import": "./dist/browser/nostr-auth-middleware.min.js",
       "types": "./dist/types/browser.d.ts"
     }
   },
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/types/index.d.ts",
-  "browser": "./dist/browser/nostr-auth-middleware.min.js",
   "files": [
     "dist",
     "LICENSE",

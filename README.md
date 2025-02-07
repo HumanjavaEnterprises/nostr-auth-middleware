@@ -68,6 +68,7 @@ This middleware follows key principles that promote security, auditability, and 
 - [Security Guide](docs/security.md) - Security best practices and considerations
 - [Automated Tests](docs/automated-tests.md) - Comprehensive test suite documentation
 - [TypeScript Guide](docs/typescript.md) - TypeScript declaration patterns and best practices
+- [Browser Authentication](docs/browser-authentication.md) - Browser-based authentication flow
 
 ### TypeScript Declaration Pattern
 
@@ -93,6 +94,52 @@ export = NostrAuthClient;
 ```
 
 This pattern ensures better IDE support and cleaner type declarations. For more details, see our [TypeScript Guide](docs/typescript.md).
+
+## Browser Authentication
+
+For client-side applications, we provide a lightweight browser-based authentication flow using NIP-07. This implementation works directly with Nostr browser extensions like nos2x or Alby.
+
+### Usage
+
+```javascript
+import { NostrBrowserAuth } from '@humanjavaenterprises/nostr-auth-middleware';
+
+// Create an instance with optional configuration
+const auth = new NostrBrowserAuth({
+  customKind: 22242, // Optional: custom event kind for authentication
+  clientName: 'my-app' // Optional: client name for challenge generation
+});
+
+// Authenticate user
+try {
+  const result = await auth.authenticate();
+  console.log('Authenticated:', result.pubkey);
+  
+  // Store the session
+  localStorage.setItem('nostrSession', JSON.stringify({
+    pubkey: result.pubkey,
+    timestamp: result.timestamp
+  }));
+} catch (error) {
+  console.error('Authentication failed:', error);
+}
+
+// Validate session
+const session = JSON.parse(localStorage.getItem('nostrSession'));
+const isValid = await auth.validateSession(session);
+```
+
+The browser authentication flow:
+1. Requests read permission to get the user's public key
+2. Creates a unique challenge
+3. Requests write permission to sign the challenge
+4. Returns the signed event and session information
+
+This provides a secure authentication method that:
+- Proves ownership of the private key through signature
+- Uses unique challenges to prevent replay attacks
+- Includes timestamps for additional security
+- Uses a custom event kind for authentication
 
 ## Testing
 

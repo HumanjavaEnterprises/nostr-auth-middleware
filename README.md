@@ -141,6 +141,149 @@ This provides a secure authentication method that:
 - Includes timestamps for additional security
 - Uses a custom event kind for authentication
 
+## Quick Start Guide
+
+Add Nostr authentication to your web app in minutes!
+
+### 1. Installation
+
+```bash
+npm install @humanjavaenterprises/nostr-auth-middleware
+```
+
+### 2. Client-Side Setup (React Example)
+
+```typescript
+import { NostrBrowserAuth } from '@humanjavaenterprises/nostr-auth-middleware/browser';
+
+function LoginButton() {
+  const auth = new NostrBrowserAuth();
+  
+  const handleLogin = async () => {
+    try {
+      // Check if Nostr extension is available
+      if (!window.nostr) {
+        alert('Please install a Nostr extension (like nos2x or Alby)');
+        return;
+      }
+
+      // Get user's public key (requires read permission)
+      const pubkey = await window.nostr.getPublicKey();
+      
+      // Create authentication challenge
+      const { challenge, timestamp } = await auth.createChallenge();
+      
+      // Request signature (requires write permission)
+      const event = await auth.signChallenge(challenge, pubkey, timestamp);
+      
+      // Send to your backend
+      const response = await fetch('/api/auth/nostr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event })
+      });
+      
+      const { token } = await response.json();
+      
+      // Store JWT token
+      localStorage.setItem('auth_token', token);
+      
+    } catch (error) {
+      console.error('Login failed:', error);
+    }
+  };
+
+  return (
+    <button onClick={handleLogin}>
+      Login with Nostr
+    </button>
+  );
+}
+```
+
+### 3. Server-Side Setup (Express Example)
+
+```typescript
+import express from 'express';
+import { NostrAuthMiddleware } from '@humanjavaenterprises/nostr-auth-middleware';
+
+const app = express();
+app.use(express.json());
+
+// Initialize middleware with your JWT secret
+const nostrAuth = new NostrAuthMiddleware({
+  jwtSecret: process.env.JWT_SECRET || 'your-secret-key'
+});
+
+// Login endpoint
+app.post('/api/auth/nostr', async (req, res) => {
+  try {
+    const { event } = req.body;
+    
+    // Validate the Nostr event and generate JWT
+    const token = await nostrAuth.authenticate(event);
+    
+    res.json({ token });
+  } catch (error) {
+    res.status(401).json({ error: 'Authentication failed' });
+  }
+});
+
+// Protected route example
+app.get('/api/protected', nostrAuth.requireAuth(), (req, res) => {
+  // req.user.npub contains the user's public key
+  res.json({ message: `Hello ${req.user.npub}!` });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
+});
+```
+
+### 4. That's it! 
+
+Your app now has:
+- :zap: One-click Nostr login
+- :lock: Secure challenge-response authentication
+- :key: Proper permission handling
+- :shield: JWT-based session management
+
+### Advanced Features
+
+For more advanced use cases, you can:
+
+1. **Customize the Challenge Format**
+```typescript
+const auth = new NostrBrowserAuth({
+  clientName: 'my-app',  // Custom prefix for challenges
+  customKind: 22242      // Custom event kind
+});
+```
+
+2. **Add Rate Limiting**
+```typescript
+const nostrAuth = new NostrAuthMiddleware({
+  jwtSecret: 'your-secret-key',
+  rateLimit: {
+    windowMs: 15 * 60 * 1000,  // 15 minutes
+    max: 100                   // limit each IP to 100 requests per windowMs
+  }
+});
+```
+
+3. **Custom JWT Configuration**
+```typescript
+const nostrAuth = new NostrAuthMiddleware({
+  jwtSecret: 'your-secret-key',
+  jwtOptions: {
+    expiresIn: '7d',          // Token expires in 7 days
+    issuer: 'my-app'          // Custom issuer
+  }
+});
+```
+
+For more detailed examples and configuration options, see our [documentation](/docs).
+
 ## Testing
 
 The middleware includes comprehensive test coverage for all core functionality:
@@ -172,18 +315,6 @@ For testing authentication flow:
 ```bash
 npm run test:auth
 ```
-
-## Quick Start
-
-1. Clone the repository
-2. Copy `.env.example` to `.env`
-3. Run `./scripts/startup.sh`
-
-The server will automatically:
-- Configure itself based on the environment (development/production)
-- Generate server keys if none exist
-- Create necessary directories with proper permissions
-- Start the service with appropriate settings
 
 ## Development Mode
 

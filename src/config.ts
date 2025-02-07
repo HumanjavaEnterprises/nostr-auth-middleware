@@ -3,10 +3,11 @@ import { createLogger } from './utils/logger.js';
 
 const logger = createLogger('Config');
 
-function getEnvWithWarning(key: string): string | undefined {
+function getEnvWithWarning(key: string): string {
   const value = process.env[key];
   if (!value) {
     logger.warn(`${key} not set in environment variables`);
+    return '';
   }
   return value;
 }
@@ -38,7 +39,7 @@ export const config: NostrAuthConfig = {
   challengePrefix: process.env.CHALLENGE_PREFIX || 'nostr:auth:',
   testMode: process.env.TEST_MODE === 'true',
   logLevel: process.env.LOG_LEVEL || 'info',
-  jwtSecret: getEnvWithWarning('JWT_SECRET'),
+  jwtSecret: getEnvWithWarning('JWT_SECRET') || 'default-secret-do-not-use-in-production',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
   supabaseUrl: getEnvWithWarning('SUPABASE_URL'),
   supabaseKey: getEnvWithWarning('SUPABASE_KEY'),

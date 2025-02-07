@@ -1,11 +1,15 @@
+/**
+ * Core type definitions for Nostr authentication
+ */
+
 export interface NostrEvent {
-  id: string;
-  pubkey: string;
+  id?: string;
+  pubkey?: string;
   created_at: number;
   kind: number;
   tags: string[][];
   content: string;
-  sig: string;
+  sig?: string;
 }
 
 export interface PublicKeyDetails {
@@ -22,12 +26,16 @@ export interface NostrAuthConfig {
   challengePrefix?: string;
   testMode?: boolean;
   logLevel?: string;
-  jwtSecret?: string;
+  jwtSecret: string;
   jwtExpiresIn?: string;
   supabaseUrl?: string;
   supabaseKey?: string;
   privateKey?: string;
   publicKey?: string | PublicKeyDetails;
+  customKind?: number;
+  jwtExpiry?: number;
+  challengeTemplate?: string;
+  timeout?: number;
 }
 
 export interface NostrChallenge {

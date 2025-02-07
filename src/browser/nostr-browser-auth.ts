@@ -3,8 +3,8 @@
  * Provides a lightweight client-side authentication flow using NIP-07
  */
 
-import { NostrEvent } from '../types';
-import '../types/nip07';  // Import NIP-07 type definitions
+import { NostrEvent } from '../types.js';
+import '../types/nip07.js';  // Import NIP-07 type definitions
 
 export interface NostrBrowserConfig {
   customKind?: number;

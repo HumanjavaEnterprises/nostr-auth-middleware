@@ -19,6 +19,9 @@ export default {
   },
   resolve: {
     extensions: ['.ts', '.js'],
+    extensionAlias: {
+      '.js': ['.ts', '.js']
+    },
     fallback: {
       "os": false,
       "fs": false,
@@ -34,13 +37,16 @@ export default {
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.(ts|js)$/,
         use: [
           {
             loader: 'ts-loader',
             options: {
               configFile: 'tsconfig.browser.json',
-              transpileOnly: true
+              transpileOnly: true,
+              compilerOptions: {
+                module: 'ESNext'
+              }
             }
           }
         ],

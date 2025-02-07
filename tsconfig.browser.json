@@ -8,8 +8,14 @@
     "declaration": false,
     "sourceMap": true,
     "importHelpers": true,
-    "noEmitHelpers": true
+    "noEmitHelpers": true,
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["ES2020", "DOM"]
   },
-  "include": ["src/browser.ts", "src/browser/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

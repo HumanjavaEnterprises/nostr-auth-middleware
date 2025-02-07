@@ -4,6 +4,7 @@
  */
 
 import { NostrEvent } from '../types';
+import '../types/nip07';  // Import NIP-07 type definitions
 
 export interface NostrBrowserConfig {
   customKind?: number;

@@ -8,8 +8,8 @@ export default {
   mode: 'production',
   entry: './src/browser.ts',
   output: {
-    path: path.resolve(__dirname, 'dist/browser'),
     filename: 'nostr-auth-middleware.min.js',
+    path: path.resolve(__dirname, 'dist/browser'),
     library: {
       name: 'NostrAuthMiddleware',
       type: 'umd',
@@ -17,31 +17,41 @@ export default {
     },
     globalObject: 'this'
   },
+  resolve: {
+    extensions: ['.ts', '.js'],
+    fallback: {
+      "os": false,
+      "fs": false,
+      "path": false,
+      "http": false,
+      "https": false,
+      "stream": false,
+      "crypto": false,
+      "buffer": false,
+      "util": false
+    }
+  },
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
-        use: {
-          loader: 'ts-loader',
-          options: {
-            configFile: 'tsconfig.esm.json'
+        test: /\.ts$/,
+        use: [
+          {
+            loader: 'ts-loader',
+            options: {
+              configFile: 'tsconfig.browser.json',
+              transpileOnly: true
+            }
           }
-        },
+        ],
         exclude: /node_modules/
       }
     ]
   },
-  resolve: {
-    extensions: ['.tsx', '.ts', '.js', '.mjs'],
-    extensionAlias: {
-      '.js': ['.js', '.ts'],
-      '.mjs': ['.mjs', '.mts']
-    }
+  optimization: {
+    minimize: true
   },
   externals: {
-    'nostr-tools': 'nostr-tools',
-    '@noble/hashes': '@noble/hashes',
-    '@noble/curves': '@noble/curves',
-    '@noble/secp256k1': '@noble/secp256k1'
+    express: 'express'
   }
 };

@@ -3,21 +3,40 @@
  * Provides a lightweight client-side authentication flow using NIP-07
  */
 
-import { NostrEvent } from '../types.js';
-import '../types/nip07.js';  // Import NIP-07 type definitions
+import type { NostrEvent } from '../types.js';
+
+// NIP-07 type definitions
+declare global {
+  interface Window {
+    nostr?: {
+      getPublicKey(): Promise<string>;
+      signEvent(event: NostrEvent): Promise<NostrEvent>;
+      getRelays(): Promise<{ [url: string]: { read: boolean; write: boolean } }>;
+      nip04?: {
+        encrypt(pubkey: string, plaintext: string): Promise<string>;
+        decrypt(pubkey: string, ciphertext: string): Promise<string>;
+      };
+    };
+  }
+}
 
 export interface NostrBrowserConfig {
   customKind?: number;
-  clientName?: string;
+  /** Custom challenge message template */
+  challengeTemplate?: string;
+  /** Timeout in milliseconds for getPublicKey and signEvent operations */
+  timeout?: number;
 }
 
 export class NostrBrowserAuth {
-  private readonly eventKind: number;
-  private readonly clientName: string;
+  private readonly kind: number;
+  private readonly timeout: number;
+  private readonly challengeTemplate: string;
 
   constructor(config?: NostrBrowserConfig) {
-    this.eventKind = config?.customKind || 22242; // Custom kind for authentication
-    this.clientName = config?.clientName || 'nostr-auth';
+    this.kind = config?.customKind || 22242;
+    this.timeout = config?.timeout || 30000;
+    this.challengeTemplate = config?.challengeTemplate || 'Sign this message to authenticate: %challenge%';
   }
 
   /**
@@ -25,7 +44,7 @@ export class NostrBrowserAuth {
    * @returns {Promise<{challenge: string, timestamp: number}>}
    */
   async createChallenge(): Promise<{ challenge: string; timestamp: number }> {
-    const challenge = `${this.clientName}-${Math.random().toString(36).substring(2, 15)}`;
+    const challenge = `${Math.random().toString(36).substring(2, 15)}`;
     const timestamp = Math.floor(Date.now() / 1000);
     return { challenge, timestamp };
   }
@@ -55,12 +74,11 @@ export class NostrBrowserAuth {
       
       // Step 3: Request signature permission by asking user to sign the challenge
       const event = {
-        kind: this.eventKind,
+        kind: this.kind,
         created_at: timestamp,
-        content: challenge,
+        content: this.challengeTemplate.replace('%challenge%', challenge),
         tags: [
           ['p', pubkey],
-          ['client', this.clientName],
           ['challenge', challenge]
         ]
       } as NostrEvent;

@@ -18,9 +18,12 @@ export default {
     globalObject: 'this'
   },
   resolve: {
-    extensions: ['.ts', '.js'],
+    extensions: ['.ts', '.js', '.mjs'],
     extensionAlias: {
       '.js': ['.ts', '.js']
+    },
+    alias: {
+      '@': path.resolve(__dirname, 'src')
     },
     fallback: {
       "os": false,
@@ -31,26 +34,40 @@ export default {
       "stream": false,
       "crypto": false,
       "buffer": false,
-      "util": false
+      "util": false,
+      "zlib": false,
+      "vm": false,
+      "assert": false,
+      "constants": false,
+      "net": false,
+      "tls": false,
+      "child_process": false
     }
   },
   module: {
     rules: [
       {
-        test: /\.(ts|js)$/,
+        test: /\.ts$/,
+        exclude: /\.d\.ts$/,
         use: [
           {
             loader: 'ts-loader',
             options: {
               configFile: 'tsconfig.browser.json',
+              onlyCompileBundledFiles: true,
               transpileOnly: true,
               compilerOptions: {
-                module: 'ESNext'
+                module: 'NodeNext',
+                moduleResolution: 'NodeNext'
               }
             }
           }
         ],
-        exclude: /node_modules/
+        exclude: /node_modules\/(?!nostr-crypto-utils)/
+      },
+      {
+        test: /\.d\.ts$/,
+        loader: 'ignore-loader'
       }
     ]
   },
@@ -58,6 +75,7 @@ export default {
     minimize: true
   },
   externals: {
-    express: 'express'
+    express: 'express',
+    winston: 'winston'
   }
 };

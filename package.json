@@ -1,6 +1,6 @@
 {
   "name": "nostr-auth-middleware",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A focused, security-first authentication middleware for Nostr applications",
   "author": "vveerrgg",
   "type": "module",
@@ -23,9 +23,14 @@
     }
   },
   "files": [
-    "dist",
+    "dist/",
+    "docs/",
+    "COLAB-DOCS/",
+    "README.md",
     "LICENSE",
-    "README.md"
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md"
   ],
   "scripts": {
     "build": "npm run build:types && npm run build:cjs && npm run build:esm && npm run build:browser",

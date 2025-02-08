@@ -87,6 +87,78 @@ This middleware follows key principles that promote security, auditability, and 
 - Modes: Development & Production Modes
 - Directory Management: Automated Directory Management
 
+## JWT Configuration & Usage
+
+### Basic Setup
+```javascript
+const auth = new NostrAuthMiddleware({
+  jwtSecret: process.env.JWT_SECRET,  // Required
+  expiresIn: '24h'                    // Optional, defaults to '24h'
+});
+```
+
+### JWT Operations
+
+#### Token Generation
+```javascript
+// Generate a JWT token with minimal claims
+const token = await auth.generateToken({ pubkey });
+
+// The generated token includes:
+// - pubkey (npub)
+// - iat (issued at timestamp)
+// - exp (expiration timestamp)
+```
+
+#### Token Verification
+```javascript
+// Verify a JWT token
+const isValid = await auth.verifyToken(token);
+if (isValid) {
+  // Token is valid, proceed with authentication
+}
+```
+
+### Browser Compatibility
+
+The middleware is fully compatible with modern browsers and works seamlessly with build tools like Vite, Webpack, and Rollup. When using in a browser environment:
+
+1. **Import the Package**
+```javascript
+import { NostrAuthMiddleware } from 'nostr-auth-middleware';
+```
+
+2. **Initialize with Environment Variables**
+```javascript
+const auth = new NostrAuthMiddleware({
+  jwtSecret: import.meta.env.VITE_JWT_SECRET,  // For Vite
+  // or
+  jwtSecret: process.env.REACT_APP_JWT_SECRET  // For Create React App
+});
+```
+
+3. **Handle Browser-Specific Features**
+- Automatically detects and uses browser's localStorage for session management
+- Compatible with browser-based Nostr extensions (nos2x, Alby)
+- Handles browser-specific cryptographic operations
+
+### Security Best Practices
+
+1. **JWT Secret Management**
+   - Use a strong, unique secret for JWT signing
+   - Never expose the JWT secret in client-side code
+   - Rotate secrets periodically in production
+
+2. **Token Storage**
+   - Store tokens securely using browser's localStorage or sessionStorage
+   - Clear tokens on logout
+   - Implement token refresh mechanisms for long-lived sessions
+
+3. **Environment Variables**
+   - Use different JWT secrets for development and production
+   - Configure appropriate token expiration times
+   - Implement proper error handling for token validation
+
 ## Documentation
 
 - [Architecture Guide](docs/architecture-guide.md) - Understanding the service architecture

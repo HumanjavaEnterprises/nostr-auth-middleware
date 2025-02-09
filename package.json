@@ -1,6 +1,6 @@
 {
   "name": "nostr-auth-middleware",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "A focused, security-first authentication middleware for Nostr applications",
   "author": "vveerrgg",
   "type": "module",

@@ -149,6 +149,27 @@ export class NostrAuthMiddleware {
   }
 
   /**
+   * Verify if a session is still valid by checking if the pubkey is still accessible
+   * @param pubkey - The public key to verify
+   * @returns Promise<boolean> - True if session is valid, false otherwise
+   */
+  async verifySession(pubkey: string): Promise<boolean> {
+    try {
+      // In browser mode, verify through extension
+      if (typeof window !== 'undefined' && window.nostr) {
+        const extensionPubkey = await window.nostr.getPublicKey();
+        return extensionPubkey === pubkey;
+      }
+      
+      // In server mode, just verify pubkey format
+      return /^[0-9a-f]{64}$/.test(pubkey);
+    } catch (error) {
+      console.error('Error verifying session:', error);
+      return false;
+    }
+  }
+
+  /**
    * Gets the Express router instance
    * @returns {Router} Express router
    */

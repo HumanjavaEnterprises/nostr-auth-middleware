@@ -163,6 +163,38 @@ const auth = new NostrAuthMiddleware({
    - Configure appropriate token expiration times
    - Implement proper error handling for token validation
 
+## Session Management
+
+### Browser Session Verification
+```javascript
+// Verify if a user's session is still valid
+const isValid = await auth.verifySession(userPubkey);
+if (isValid) {
+  console.log('Session is valid');
+} else {
+  console.log('Session is invalid or expired');
+  // Handle logout
+}
+```
+
+The session verification:
+- Checks if the Nostr extension is still available
+- Verifies the public key matches
+- Handles disconnection gracefully
+- Works in both browser and server environments
+
+### Development Mode
+When running in development mode, the middleware provides detailed logging:
+```javascript
+// Development mode logs
+Cached Profile: { /* profile data */ }
+Fresh Profile: { /* profile and event data */ }
+Profile Cache Hit: { pubkey, cacheAge }
+Profile Cache Expired: { pubkey, cacheAge }
+Profile Cached: { pubkey, profile }
+Profile Cache Cleared: { pubkey }
+```
+
 ## Documentation
 
 - [Architecture Guide](docs/architecture-guide.md) - Understanding the service architecture

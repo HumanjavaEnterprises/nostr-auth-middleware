@@ -9,6 +9,12 @@ import { NostrEvent } from '../interfaces/nostr.interface.js';
 export { NostrEvent };
 
 /**
+ * Type representing JWT expiration time
+ * @type {string}
+ */
+export type JWTExpiresIn = string;
+
+/**
  * Interface representing a Nostr authentication challenge
  * @interface NostrChallenge
  */
@@ -130,9 +136,9 @@ export interface NostrAuthConfig extends SecurityConfig {
   supabaseKey?: string;
   
   /** Secret for JWT signing */
-  jwtSecret?: string;
+  jwtSecret: string;
   /** JWT expiration time */
-  jwtExpiresIn?: string;
+  jwtExpiresIn: JWTExpiresIn;
   /** Enable test mode */
   testMode?: boolean;
 }

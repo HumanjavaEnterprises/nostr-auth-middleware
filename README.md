@@ -92,10 +92,14 @@ This middleware follows key principles that promote security, auditability, and 
 ### Basic Setup
 ```javascript
 const auth = new NostrAuthMiddleware({
-  jwtSecret: process.env.JWT_SECRET,  // Required
+  jwtSecret: process.env.JWT_SECRET,  // Required in production
   expiresIn: '24h'                    // Optional, defaults to '24h'
 });
 ```
+
+### Environment-Specific Behavior
+- **Production**: JWT_SECRET is required. The middleware will throw an error if not provided
+- **Development**: A default development-only secret is used if JWT_SECRET is not provided (not secure for production use)
 
 ### JWT Operations
 

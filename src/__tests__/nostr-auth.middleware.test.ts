@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 import { NostrAuthMiddleware } from '../middleware/nostr-auth.middleware.js';
 import { NostrService } from '../services/nostr.service.js';
-import { NostrEvent, NostrChallenge, VerificationResult, NostrAuthConfig, JWTExpiresIn } from '../types/index.js';
+import type { NostrEvent, NostrChallenge, VerificationResult, NostrAuthConfig, JWTExpiresIn } from '../types.js';
 
 // Mock NostrService
 vi.mock('../services/nostr.service.js');
@@ -14,14 +14,14 @@ describe('NostrAuthMiddleware', () => {
   let mockNext: NextFunction;
   let mockNostrService: NostrService;
 
-  const testConfig: NostrAuthConfig = {
+  const testConfig: Partial<NostrAuthConfig> = {
     jwtSecret: 'test-secret-key',
-    jwtExpiresIn: '24h' satisfies JWTExpiresIn,
+    jwtExpiresIn: '24h' as JWTExpiresIn,
     eventTimeoutMs: 5000,
     keyManagementMode: 'development' as const,
     port: 3000,
     nodeEnv: 'test',
-    corsOrigins: '*',
+    corsOrigin: '*',
     supabaseUrl: 'http://localhost:54321',
     supabaseKey: 'test-key',
     testMode: true

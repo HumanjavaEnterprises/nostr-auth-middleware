@@ -5,15 +5,16 @@
 
 import { Request, Response, NextFunction, Router } from 'express';
 import { NostrService } from '../services/nostr.service.js';
-import { NostrEvent, NostrAuthConfig } from '../types.js';
+import type { NostrEvent, NostrAuthConfig, JWTExpiresIn } from '../types.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('NostrAuthMiddleware');
 
-const DEFAULT_CONFIG: Required<Pick<NostrAuthConfig, 'keyManagementMode' | 'eventTimeoutMs' | 'jwtExpiresIn'>> = {
+const DEFAULT_CONFIG: Required<Pick<NostrAuthConfig, 'keyManagementMode' | 'eventTimeoutMs' | 'jwtExpiresIn' | 'port'>> = {
   keyManagementMode: 'development',
   eventTimeoutMs: 300000, // 5 minutes
-  jwtExpiresIn: '1h'
+  jwtExpiresIn: '1h' as JWTExpiresIn,
+  port: 3000 // Default port
 };
 
 /**
@@ -37,14 +38,15 @@ export class NostrAuthMiddleware {
     }
 
     // Ensure required properties are present with defaults
-    const fullConfig = {
+    const fullConfig: NostrAuthConfig = {
       ...DEFAULT_CONFIG,
       ...config,
       jwtSecret: config.jwtSecret,
+      port: config.port || DEFAULT_CONFIG.port,
       eventTimeoutMs: config.eventTimeoutMs || DEFAULT_CONFIG.eventTimeoutMs,
       jwtExpiresIn: config.jwtExpiresIn || DEFAULT_CONFIG.jwtExpiresIn,
       keyManagementMode: config.keyManagementMode || DEFAULT_CONFIG.keyManagementMode
-    } as NostrAuthConfig;
+    };
     
     this.nostrService = nostrService || new NostrService(fullConfig);
     this.router = Router();

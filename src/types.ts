@@ -66,10 +66,11 @@ export interface NostrAuthConfig {
  */
 export interface NostrChallenge {
   id: string;
+  pubkey: string;
   challenge: string;
+  event?: NostrEvent;
   created_at: number;
   expires_at: number;
-  pubkey: string;
 }
 
 /**

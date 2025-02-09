@@ -54,7 +54,9 @@ export const config: NostrConfig = {
   privateKey: process.env.SERVER_PRIVATE_KEY,
   keyManagementMode: (process.env.KEY_MANAGEMENT_MODE as 'development' | 'production') || 'development',
   // Auth config
-  jwtSecret: process.env.JWT_SECRET || 'maiqr_nostr_auth_secret_key_2024',
+  jwtSecret: process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' 
+    ? (() => { throw new Error('JWT_SECRET is required in production mode') })()
+    : 'development_jwt_secret_do_not_use_in_production'),
   jwtExpiresIn: '1h',
   testMode: process.env.TEST_MODE === 'true',
   // Optional configs
@@ -111,7 +113,9 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
     publicKey: process.env.SERVER_PUBLIC_KEY,
     keyManagementMode: process.env.KEY_MANAGEMENT_MODE as 'development' | 'production',
     // Auth config
-    jwtSecret: process.env.JWT_SECRET,
+    jwtSecret: process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' 
+      ? (() => { throw new Error('JWT_SECRET is required in production mode') })()
+      : 'development_jwt_secret_do_not_use_in_production'),
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
     testMode: process.env.NODE_ENV !== 'production',
     // Optional configs

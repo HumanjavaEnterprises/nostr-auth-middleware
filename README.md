@@ -197,17 +197,10 @@ Profile Cache Cleared: { pubkey }
 
 ## Documentation
 
-- [Architecture Guide](docs/architecture-guide.md) - Understanding the service architecture
-- [Key Management Guide](docs/key-management.md) - Comprehensive key management documentation
-- [Deployment Guide](docs/deployment-guide.md) - Environment-specific deployment instructions
 - [Getting Started](docs/getting-started.md) - Quick start guide
-- [Authentication Flow](docs/authentication-flow.md) - Detailed authentication process
-- [Troubleshooting Guide](docs/troubleshooting.md) - Common issues and solutions
 - [API Documentation](docs/api.md) - API endpoints and usage
-- [Security Guide](docs/security.md) - Security best practices and considerations
-- [Automated Tests](docs/automated-tests.md) - Comprehensive test suite documentation
+- [Security Guide](docs/security.md) - Security best practices and key management
 - [TypeScript Guide](docs/typescript.md) - TypeScript declaration patterns and best practices
-- [Browser Authentication](docs/browser-authentication.md) - Browser-based authentication flow
 
 ### TypeScript Declaration Pattern
 

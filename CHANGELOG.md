@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.3.5] - 2025-02-19
+
+### Changed
+- Updated dependencies to latest within major versions
+
 ## [0.3.4] - 2025-02-09
 
 ### Added
@@ -16,22 +23,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced browser compatibility checks
 - Better error messages for session-related operations
 
-## [0.2.6] - 2023-12-05
+## [0.3.3] - 2025-02-01
+
+### Added
+- JWT secret validation at startup
+
+## [0.3.2] - 2025-01-25
+
+### Added
+- Comprehensive JWT configuration and browser compatibility documentation
+
+## [0.3.1] - 2025-01-20
+
+### Changed
+- Included documentation in npm package
+
+## [0.3.0] - 2025-01-15
+
+### Changed
+- Major codebase improvements and documentation updates
+- Removed Node.js 16.x support, upgraded GitHub Actions to v4
+- Prepared for npm publish
+
+## [0.2.6] - 2024-01-09
 
 ### Added
 - New TypeScript interfaces in `interfaces/nostr.interface.ts` for better type safety
 - More comprehensive event validation with detailed error messages
 
-### Enhanced
+### Changed
 - Improved event validation with stricter type checking
 - Better error handling and logging in event validator
 - Updated to use latest crypto utilities
 
-## [0.2.5] - 2024-01-09
+## [0.2.5] - 2023-12-08
 
 ### Changed
-- Updated to use published versions of @humanjavaenterprises/nostr-crypto-utils@0.2.0 and @humanjavaenterprises/nostr-nsec-seedphrase-library@0.2.0
-- Updated key generation to use new generateKeyPairWithSeed function from nostr-nsec-seedphrase-library
+- Updated to use published versions of nostr-crypto-utils and nostr-nsec-seedphrase
+- Updated key generation to use new generateKeyPairWithSeed function
 
 ## [0.2.3] - 2023-12-06
 
@@ -48,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved error handling in middleware
 - Enhanced TypeScript type safety
 
-## [0.2.2] - Previous Release
+## [0.2.2] - 2023-12-01
 
 ### Added
 - Initial implementation of Nostr authentication middleware

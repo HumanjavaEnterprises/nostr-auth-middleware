@@ -276,3 +276,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Security
 
 For security issues, please see our [Security Policy](SECURITY.md) and report any vulnerabilities responsibly.
+
+### Dependency Vulnerability Status
+
+We actively monitor and address security vulnerabilities in this codebase. **`npm audit --omit=dev` reports zero vulnerabilities** for this package — there are no known security issues in production dependencies.
+
+Any remaining `npm audit` findings are in development-only tooling (eslint, typescript-eslint, vitest, etc.) and stem from transitive dependencies with no upstream fix available. These are devDependencies that are never included in the published package and pose no risk to consumers of this library. We monitor upstream fixes and update promptly when they become available.

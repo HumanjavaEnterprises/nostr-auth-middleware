@@ -34,7 +34,8 @@ export const config: NostrConfig = {
   // Server config
   port: parseInt(process.env.PORT || '3002'),
   nodeEnv: process.env.NODE_ENV || 'development',
-  corsOrigins: process.env.CORS_ORIGINS?.split(',') || '*',
+  // SECURITY: Do not default to '*' — require explicit CORS_ORIGINS configuration.
+  corsOrigins: process.env.CORS_ORIGINS?.split(',') || false,
   security: {
     trustedProxies: process.env.TRUSTED_PROXIES?.split(',') || false,
     allowedIPs: process.env.ALLOWED_IPS?.split(',') || [],
@@ -94,7 +95,8 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
     // Server config
     port: parseInt(process.env.PORT || '3002'),
     nodeEnv: process.env.NODE_ENV || 'development',
-    corsOrigins: process.env.CORS_ORIGINS?.split(',') || '*',
+    // SECURITY: Do not default to '*' — require explicit CORS_ORIGINS configuration.
+    corsOrigins: process.env.CORS_ORIGINS?.split(',') || false,
     security: {
       trustedProxies: process.env.TRUSTED_PROXIES?.split(',') || false,
       allowedIPs: process.env.ALLOWED_IPS?.split(',') || [],
@@ -127,16 +129,19 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
     challengePrefix: process.env.CHALLENGE_PREFIX || 'nostr:auth:'
   };
 
-  // Try to load keys from environment
+  // SECURITY: Prefer loading server keys from environment variables (SERVER_PRIVATE_KEY).
+  // This avoids storing private keys as plaintext in Supabase.
   if (process.env.SERVER_PRIVATE_KEY) {
     const keyPair = await generateKeyPair();
     loadedConfig.privateKey = process.env.SERVER_PRIVATE_KEY;
     loadedConfig.publicKey = keyPair.publicKey.toString();
-    logger.info('Loaded server keys from environment');
+    logger.info('Loaded server keys from environment (recommended for production)');
     return loadedConfig;
   }
 
   // If in production, try to load from Supabase
+  // SECURITY WARNING: Keys in Supabase server_keys table are stored as plaintext.
+  // For production deployments, use SERVER_PRIVATE_KEY env var or a secrets manager (e.g., AWS KMS, HashiCorp Vault).
   if (!loadedConfig.testMode && loadedConfig.supabaseUrl && loadedConfig.supabaseKey) {
     const supabase = createClient(loadedConfig.supabaseUrl, loadedConfig.supabaseKey);
     try {
@@ -149,6 +154,7 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
         loadedConfig.privateKey = keys.private_key;
         loadedConfig.publicKey = keys.public_key;
         logger.info('Loaded server keys from Supabase');
+        logger.warn('[nostr-auth] WARNING: Server private key loaded from Supabase without encryption. Set SERVER_PRIVATE_KEY env var or use a secrets manager for production.');
       }
     } catch (error) {
       logger.warn('Failed to load server keys from Supabase:', error);
@@ -162,8 +168,10 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
     loadedConfig.privateKey = privateKey;
     loadedConfig.publicKey = publicKey;
 
-    // Save to Supabase if available
+    // SECURITY WARNING: Storing private key as plaintext in Supabase.
+    // For production, set SERVER_PRIVATE_KEY env var or use a secrets manager instead.
     if (!loadedConfig.testMode && loadedConfig.supabaseUrl && loadedConfig.supabaseKey) {
+      logger.warn('[nostr-auth] WARNING: Server private key will be stored in Supabase without encryption. Consider using a secrets manager for production.');
       const supabase = createClient(loadedConfig.supabaseUrl, loadedConfig.supabaseKey);
       try {
         await supabase

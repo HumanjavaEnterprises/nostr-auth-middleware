@@ -41,7 +41,9 @@ export function generateApiKeyForUser(userId: string, secret: string): string {
     const timestamp = Date.now().toString();
     const data = `${userId}:${timestamp}:${secret}`;
     const hash = createHash('sha256').update(data).digest('hex');
-    return `${userId}_${timestamp}_${hash.substring(0, 8)}`;
+    // SECURITY: Use the full SHA-256 hash (64 hex chars = 256 bits) for proper entropy.
+    // Previously used only 8 chars (32 bits) which is vulnerable to brute-force.
+    return `${userId}_${timestamp}_${hash}`;
   } catch (error) {
     logger.error('Error generating API key for user:', { error: error instanceof Error ? error.message : String(error) });
     throw new Error('Failed to generate API key for user');
@@ -96,9 +98,9 @@ export function verifyApiKey(apiKey: string, hashedApiKey: string): boolean {
  * @param {string} apiKey - The API key to parse (format: userId_timestamp_hash)
  * @returns {{ userId: string; timestamp: string; hash: string } | null} Parsed components or null if invalid
  * @example
- * const apiKey = "user123_1643673600000_a1b2c3d4";
+ * const apiKey = "user123_1643673600000_a1b2c3d4e5f6...";
  * const result = parseApiKey(apiKey);
- * // result = { userId: "user123", timestamp: "1643673600000", hash: "a1b2c3d4" }
+ * // result = { userId: "user123", timestamp: "1643673600000", hash: "a1b2c3d4e5f6..." }
  */
 export function parseApiKey(apiKey: string): { userId: string; timestamp: string; hash: string } | null {
   try {

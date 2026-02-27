@@ -21,11 +21,13 @@ app.use(ipWhitelist);
 app.use(rateLimiter);
 
 // CORS configuration
+// SECURITY: Never combine wildcard origin ('*') with credentials: true.
+// If no explicit origins are configured, CORS is disabled (origin: false).
 app.use(cors({
-  origin: config.corsOrigins || '*',
+  origin: config.corsOrigins && config.corsOrigins !== '*' ? config.corsOrigins : false,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
-  credentials: true
+  credentials: !!(config.corsOrigins && config.corsOrigins !== '*')
 }));
 
 app.use(express.json());

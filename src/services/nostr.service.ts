@@ -25,6 +25,8 @@ type SupabaseChallenge = {
 export class NostrService {
   private readonly config: NostrAuthConfig;
   private readonly supabase?: SupabaseClient;
+  private challengeStore: Map<string, { challenge: string; pubkey: string; createdAt: number }> = new Map();
+  private cleanupInterval?: ReturnType<typeof setInterval>;
 
   constructor(config: NostrAuthConfig) {
     // Set default values for required properties
@@ -41,6 +43,25 @@ export class NostrService {
 
     if (config.supabaseUrl && config.supabaseKey) {
       this.supabase = createClient(config.supabaseUrl, config.supabaseKey);
+    }
+
+    // Periodically clean up expired challenges from in-memory store (every 60 seconds)
+    this.cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      for (const [id, entry] of this.challengeStore) {
+        if (now - entry.createdAt > this.config.eventTimeoutMs) {
+          this.challengeStore.delete(id);
+        }
+      }
+    }, 60000);
+  }
+
+  /**
+   * Stops the periodic cleanup interval (for graceful shutdown)
+   */
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
     }
   }
 
@@ -67,6 +88,13 @@ export class NostrService {
       } catch (error) {
         logger.error('Failed to store challenge:', error);
       }
+    } else {
+      // Store in in-memory challenge store as fallback
+      this.challengeStore.set(challenge.id, {
+        challenge: challenge.challenge,
+        pubkey,
+        createdAt: Date.now()
+      });
     }
 
     return challenge.challenge;
@@ -106,6 +134,28 @@ export class NostrService {
           .from('challenges')
           .delete()
           .eq('id', data.id);
+      } else {
+        // Verify against in-memory challenge store
+        let matchedId: string | null = null;
+
+        for (const [id, entry] of this.challengeStore) {
+          if (entry.challenge === event.content && entry.pubkey === event.pubkey) {
+            // Check if challenge has expired (5 min TTL)
+            if (Date.now() - entry.createdAt > this.config.eventTimeoutMs) {
+              this.challengeStore.delete(id);
+              return { success: false, error: 'Challenge expired' };
+            }
+            matchedId = id;
+            break;
+          }
+        }
+
+        if (!matchedId) {
+          return { success: false, error: 'Challenge not found' };
+        }
+
+        // Delete used challenge (single-use)
+        this.challengeStore.delete(matchedId);
       }
 
       return {

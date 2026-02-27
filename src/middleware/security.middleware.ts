@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
+import crypto from 'crypto';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('SecurityMiddleware');
@@ -9,7 +10,22 @@ export const validateApiKey = (req: Request, res: Response, next: NextFunction) 
   const apiKey = req.header('X-API-Key');
   const validApiKeys = process.env.API_KEYS?.split(',') || [];
 
-  if (!apiKey || !validApiKeys.includes(apiKey)) {
+  if (!apiKey) {
+    logger.warn(`Missing API key from IP: ${req.ip}`);
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+
+  const incomingHash = crypto.createHash('sha256').update(apiKey).digest();
+  const isValid = validApiKeys.some(validKey => {
+    const validHash = crypto.createHash('sha256').update(validKey).digest();
+    try {
+      return crypto.timingSafeEqual(incomingHash, validHash);
+    } catch {
+      return false;
+    }
+  });
+
+  if (!isValid) {
     logger.warn(`Invalid API key attempt from IP: ${req.ip}`);
     return res.status(401).json({ error: 'Invalid API key' });
   }

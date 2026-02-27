@@ -48,6 +48,18 @@ export async function validateEvent(event: NostrEvent): Promise<VerificationResu
       return { success: false, error: 'Invalid signature' };
     }
 
+    // Validate timestamp to prevent replay attacks
+    const now = Math.floor(Date.now() / 1000);
+    if (!event.created_at || typeof event.created_at !== 'number') {
+      return { success: false, error: 'Missing or invalid created_at timestamp' };
+    }
+    if (event.created_at < now - 300) {
+      return { success: false, error: 'Event timestamp too old' };
+    }
+    if (event.created_at > now + 60) {
+      return { success: false, error: 'Event timestamp too far in the future' };
+    }
+
     return { success: true, pubkey: event.pubkey };
   } catch (error) {
     logger.error('Event validation error:', { error: error instanceof Error ? error.message : String(error) });

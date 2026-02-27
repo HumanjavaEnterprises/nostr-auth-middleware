@@ -5,7 +5,7 @@
  * @security This module is critical for API security. Handle keys with care.
  */
 
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { createLogger } from './logger.js';
 
 const logger = createLogger('APIKeyUtils');
@@ -80,7 +80,11 @@ export function hashApiKey(apiKey: string): string {
 export function verifyApiKey(apiKey: string, hashedApiKey: string): boolean {
   try {
     const hash = hashApiKey(apiKey);
-    return hash === hashedApiKey;
+    try {
+      return timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(hashedApiKey, 'hex'));
+    } catch {
+      return false;
+    }
   } catch (error) {
     logger.error('Error verifying API key:', { error: error instanceof Error ? error.message : String(error) });
     return false;

@@ -35,7 +35,7 @@ export const config: NostrConfig = {
   port: parseInt(process.env.PORT || '3002'),
   nodeEnv: process.env.NODE_ENV || 'development',
   // SECURITY: Do not default to '*' — require explicit CORS_ORIGINS configuration.
-  corsOrigins: process.env.CORS_ORIGINS?.split(',') || false,
+  corsOrigins: process.env.CORS_ORIGINS?.split(',') || undefined,
   security: {
     trustedProxies: process.env.TRUSTED_PROXIES?.split(',') || false,
     allowedIPs: process.env.ALLOWED_IPS?.split(',') || [],
@@ -96,7 +96,7 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
     port: parseInt(process.env.PORT || '3002'),
     nodeEnv: process.env.NODE_ENV || 'development',
     // SECURITY: Do not default to '*' — require explicit CORS_ORIGINS configuration.
-    corsOrigins: process.env.CORS_ORIGINS?.split(',') || false,
+    corsOrigins: process.env.CORS_ORIGINS?.split(',') || undefined,
     security: {
       trustedProxies: process.env.TRUSTED_PROXIES?.split(',') || false,
       allowedIPs: process.env.ALLOWED_IPS?.split(',') || [],

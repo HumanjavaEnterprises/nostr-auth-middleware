@@ -16,7 +16,13 @@ export default [
         console: 'readonly',
         process: 'readonly',
         window: 'readonly',
-        jest: 'readonly'
+        jest: 'readonly',
+        fetch: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        Buffer: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly'
       }
     },
     plugins: {

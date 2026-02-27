@@ -44,7 +44,7 @@ export class NostrBrowserAuth {
    * @returns {Promise<{challenge: string, timestamp: number}>}
    */
   async createChallenge(): Promise<{ challenge: string; timestamp: number }> {
-    const challenge = `${Math.random().toString(36).substring(2, 15)}`;
+    const challenge = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
     const timestamp = Math.floor(Date.now() / 1000);
     return { challenge, timestamp };
   }

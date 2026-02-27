@@ -54,9 +54,11 @@ export const config: NostrConfig = {
   privateKey: process.env.SERVER_PRIVATE_KEY,
   keyManagementMode: (process.env.KEY_MANAGEMENT_MODE as 'development' | 'production') || 'development',
   // Auth config
-  jwtSecret: process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' 
-    ? (() => { throw new Error('JWT_SECRET is required in production mode') })()
-    : 'development_jwt_secret_do_not_use_in_production'),
+  jwtSecret: (() => {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('FATAL: JWT_SECRET environment variable is required');
+    return secret;
+  })(),
   jwtExpiresIn: '1h',
   testMode: process.env.TEST_MODE === 'true',
   // Optional configs
@@ -113,9 +115,11 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
     publicKey: process.env.SERVER_PUBLIC_KEY,
     keyManagementMode: process.env.KEY_MANAGEMENT_MODE as 'development' | 'production',
     // Auth config
-    jwtSecret: process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' 
-      ? (() => { throw new Error('JWT_SECRET is required in production mode') })()
-      : 'development_jwt_secret_do_not_use_in_production'),
+    jwtSecret: (() => {
+      const secret = process.env.JWT_SECRET;
+      if (!secret) throw new Error('FATAL: JWT_SECRET environment variable is required');
+      return secret;
+    })(),
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
     testMode: process.env.NODE_ENV !== 'production',
     // Optional configs

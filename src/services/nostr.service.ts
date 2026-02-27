@@ -2,6 +2,7 @@
  * @fileoverview Service for handling Nostr authentication operations
  */
 
+import crypto from 'crypto';
 import { NostrEvent, NostrProfile, VerificationResult, NostrAuthConfig } from '../types.js';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { validateEvent } from '../validators/event.validator.js';
@@ -51,8 +52,8 @@ export class NostrService {
   async createChallenge(pubkey: string): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     const challenge: SupabaseChallenge = {
-      id: Math.random().toString(36).substring(7),
-      challenge: `${this.config.challengePrefix || 'nostr-auth:'} ${Math.random().toString(36).substring(7)}`,
+      id: crypto.randomBytes(32).toString('hex'),
+      challenge: `${this.config.challengePrefix || 'nostr-auth:'} ${crypto.randomBytes(32).toString('hex')}`,
       created_at: now,
       expires_at: now + Math.floor(this.config.eventTimeoutMs / 1000),
       pubkey

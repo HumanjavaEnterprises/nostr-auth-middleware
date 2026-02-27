@@ -39,7 +39,11 @@ export const config: NostrAuthConfig = {
   challengePrefix: process.env.CHALLENGE_PREFIX || 'nostr:auth:',
   testMode: process.env.TEST_MODE === 'true',
   logLevel: process.env.LOG_LEVEL || 'info',
-  jwtSecret: getEnvWithWarning('JWT_SECRET') || 'default-secret-do-not-use-in-production',
+  jwtSecret: (() => {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('FATAL: JWT_SECRET environment variable is required');
+    return secret;
+  })(),
   jwtExpiresIn: (process.env.JWT_EXPIRES_IN || '24h') as JWTExpiresIn,
   supabaseUrl: getEnvWithWarning('SUPABASE_URL'),
   supabaseKey: getEnvWithWarning('SUPABASE_KEY'),

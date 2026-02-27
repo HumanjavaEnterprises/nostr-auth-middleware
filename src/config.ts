@@ -41,7 +41,12 @@ export const config: NostrAuthConfig = {
   logLevel: process.env.LOG_LEVEL || 'info',
   jwtSecret: (() => {
     const secret = process.env.JWT_SECRET;
-    if (!secret) throw new Error('FATAL: JWT_SECRET environment variable is required');
+    if (!secret) {
+      if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+        return 'test-only-placeholder-do-not-use-in-production';
+      }
+      throw new Error('FATAL: JWT_SECRET environment variable is required');
+    }
     return secret;
   })(),
   jwtExpiresIn: (process.env.JWT_EXPIRES_IN || '24h') as JWTExpiresIn,

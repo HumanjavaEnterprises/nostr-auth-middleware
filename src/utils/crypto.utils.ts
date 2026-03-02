@@ -4,11 +4,11 @@
  * @module crypto-utils
  */
 
-import { 
+import {
   generateKeyPair as genKeyPair,
-  getPublicKey as getNostrPublicKey,
+  getPublicKeySync,
   calculateEventId as getEventHash,
-  signEvent as signNostrEvent,
+  finalizeEvent,
   verifySignature as verifyNostrSignature
 } from 'nostr-crypto-utils';
 import { NostrEvent } from '../types.js';
@@ -22,13 +22,12 @@ export function generateKeyPair() {
 }
 
 /**
- * Derives a public key from a private key
+ * Derives a public key from a private key (synchronous)
  * @param {string} privateKey - The private key in hex format
- * @returns {Promise<string>} The derived public key in hex format
+ * @returns {string} The derived public key in hex format
  */
-export async function getPublicKey(privateKey: string): Promise<string> {
-  const publicKeyDetails = await getNostrPublicKey(privateKey);
-  return publicKeyDetails.toString();
+export function getPublicKey(privateKey: string): string {
+  return getPublicKeySync(privateKey);
 }
 
 /**
@@ -50,34 +49,29 @@ export function generateEventHash(event: Partial<NostrEvent>): string {
 }
 
 /**
- * Signs a Nostr event with a private key
+ * Signs a Nostr event with a private key using finalizeEvent
  * @param {NostrEvent} event - The event to sign
  * @param {string} privateKey - The private key to sign with
- * @returns {Promise<NostrEvent>} The signed event
+ * @returns {Promise<NostrEvent>} The signed event with id, pubkey, and sig
  */
 export async function signEvent(event: NostrEvent, privateKey: string): Promise<NostrEvent> {
-  return signNostrEvent(event, privateKey);
+  const signed = await finalizeEvent(event, privateKey);
+  return signed as unknown as NostrEvent;
 }
 
 /**
  * Generates a challenge event for authentication
- * @param {string} pubkey - The public key to generate the challenge for
- * @returns {Promise<NostrEvent>} The generated challenge event
+ * @param {string} privateKey - The server's private key to sign the challenge with
+ * @param {string} challengePubkey - The public key to generate the challenge for
+ * @returns {Promise<NostrEvent>} The generated and signed challenge event
  */
-export async function generateChallenge(pubkey: string): Promise<NostrEvent> {
-  const now = Math.floor(Date.now() / 1000);
-  const event: NostrEvent = {
+export async function generateChallenge(privateKey: string, challengePubkey?: string): Promise<NostrEvent> {
+  const pubkey = challengePubkey ?? getPublicKeySync(privateKey);
+  const signed = await finalizeEvent({
     kind: 22242,
-    created_at: now,
     tags: [['challenge', pubkey]],
-    content: 'Authentication request',
-    pubkey: pubkey,
-    id: '',
-    sig: ''
-  };
+    content: 'Authentication request'
+  }, privateKey);
 
-  event.id = getEventHash(event);
-  event.sig = await signNostrEvent(event, pubkey);
-
-  return event;
+  return signed as unknown as NostrEvent;
 }

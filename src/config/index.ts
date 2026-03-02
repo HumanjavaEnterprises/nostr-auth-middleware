@@ -5,7 +5,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { generateKeyPair } from '../utils/crypto.utils.js';
+import { generateKeyPair, getPublicKey } from '../utils/crypto.utils.js';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { NostrConfig } from '../types/index.js';
@@ -132,9 +132,8 @@ export async function loadConfig(envPath?: string): Promise<NostrConfig> {
   // SECURITY: Prefer loading server keys from environment variables (SERVER_PRIVATE_KEY).
   // This avoids storing private keys as plaintext in Supabase.
   if (process.env.SERVER_PRIVATE_KEY) {
-    const keyPair = await generateKeyPair();
     loadedConfig.privateKey = process.env.SERVER_PRIVATE_KEY;
-    loadedConfig.publicKey = keyPair.publicKey.toString();
+    loadedConfig.publicKey = getPublicKey(process.env.SERVER_PRIVATE_KEY);
     logger.info('Loaded server keys from environment (recommended for production)');
     return loadedConfig;
   }

@@ -81,7 +81,7 @@
     "express-rate-limit": "^7.5.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "nostr-crypto-utils": "file:../nostr-crypto-utils",
+    "nostr-crypto-utils": "^0.6.0",
     "tslib": "^2.8.1",
     "winston": "^3.19.0"
   },

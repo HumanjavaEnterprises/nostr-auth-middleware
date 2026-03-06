@@ -2,7 +2,8 @@ import { build } from 'esbuild';
 import path from 'path';
 
 // Plugin to replace Node builtins with empty modules (same as webpack fallback: false)
-// Exclude 'buffer' — nostr-crypto-utils uses the npm `buffer` polyfill package
+// Stub Node builtins that aren't needed in browser
+// Keep 'buffer' — still used by bech32 encoding in nostr-crypto-utils nip-19
 const emptyNodeBuiltins = {
   name: 'empty-node-builtins',
   setup(build) {
@@ -35,9 +36,10 @@ const result = await build({
   outfile: 'dist/browser/nostr-auth-middleware.min.js',
   target: ['es2020'],
   platform: 'browser',
-  external: ['express', 'winston'],
+  external: ['express', 'winston', 'jsonwebtoken'],
   alias: {
     '@': path.resolve('src'),
+    'nostr-crypto-utils': path.resolve('node_modules/nostr-crypto-utils/dist/cjs/index.js'),
   },
   plugins: [emptyNodeBuiltins],
   metafile: true,

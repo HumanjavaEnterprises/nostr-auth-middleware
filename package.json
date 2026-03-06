@@ -1,6 +1,6 @@
 {
   "name": "nostr-auth-middleware",
-  "version": "0.3.10",
+  "version": "0.4.0",
   "description": "A focused, security-first authentication middleware for Nostr applications",
   "author": "vveerrgg",
   "type": "module",
@@ -72,9 +72,8 @@
     "express": "^4.18.2"
   },
   "dependencies": {
-    "@noble/curves": "^1.9.7",
-    "@noble/hashes": "^1.8.0",
-    "@noble/secp256k1": "^2.3.0",
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.0.1",
     "@supabase/supabase-js": "^2.97.0",
     "@types/jsonwebtoken": "^9.0.10",
     "cors": "^2.8.6",
@@ -82,7 +81,7 @@
     "express-rate-limit": "^7.5.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "nostr-crypto-utils": "^0.5.1",
+    "nostr-crypto-utils": "file:../nostr-crypto-utils",
     "tslib": "^2.8.1",
     "winston": "^3.19.0"
   },
@@ -93,12 +92,12 @@
     "@types/node": "^20.19.33",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
-    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/coverage-v8": "^4.0.18",
     "esbuild": "^0.27.3",
     "eslint": "^10.0.0",
     "express": "^4.18.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.18"
   }
 }

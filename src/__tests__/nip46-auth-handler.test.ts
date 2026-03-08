@@ -12,7 +12,7 @@ vi.mock('nostr-crypto-utils/nip46', () => {
   };
 
   return {
-    parseBunkerURI: vi.fn((uri: string) => ({
+    parseBunkerURI: vi.fn((_uri: string) => ({
       remotePubkey: 'a'.repeat(64),
       relays: ['wss://relay.example.com'],
       secret: 'test-secret',
@@ -85,7 +85,7 @@ describe('Nip46AuthHandler', () => {
 
     mockTransport = {
       sendEvent: vi.fn(async () => {}),
-      subscribe: vi.fn((filter, onEvent) => {
+      subscribe: vi.fn((_filter, _onEvent) => {
         // Will be controlled per-test
         return () => {};
       }),

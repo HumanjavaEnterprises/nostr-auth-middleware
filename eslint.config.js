@@ -4,8 +4,10 @@ import tsparser from '@typescript-eslint/parser';
 
 export default [
   {
+    ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'scripts/**', '**/*.d.ts']
+  },
+  {
     files: ['**/*.ts'],
-    ignores: ['dist/**', 'node_modules/**'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
@@ -22,7 +24,8 @@ export default [
         clearInterval: 'readonly',
         Buffer: 'readonly',
         setTimeout: 'readonly',
-        clearTimeout: 'readonly'
+        clearTimeout: 'readonly',
+        require: 'readonly'
       }
     },
     plugins: {
@@ -34,7 +37,7 @@ export default [
       'preserve-caught-error': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-unused-vars': ['error', { 
+      '@typescript-eslint/no-unused-vars': ['error', {
         'argsIgnorePattern': '^_',
         'varsIgnorePattern': '^_'
       }],

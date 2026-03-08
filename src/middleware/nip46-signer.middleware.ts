@@ -96,7 +96,7 @@ export class Nip46SignerMiddleware {
       let unwrapped;
       try {
         unwrapped = unwrapRequest(event, this.config.signerSecretKey);
-      } catch (err) {
+      } catch {
         res.status(400).json({ error: 'Failed to decrypt request' });
         return;
       }

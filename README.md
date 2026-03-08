@@ -1,6 +1,6 @@
 # Nostr Auth Middleware
 
-A focused, security-first authentication middleware for Nostr applications.
+A focused, security-first authentication middleware for Nostr applications. Supports both NIP-07 (browser extension) and NIP-46 (remote signer / bunker) authentication flows.
 
 ## Requirements
 
@@ -23,19 +23,26 @@ Developers using this middleware must inform their users about the critical natu
 
 ### ESM (Recommended)
 ```javascript
-import { NostrAuthMiddleware } from 'nostr-auth-middleware';
+import { NostrAuthMiddleware, Nip46SignerMiddleware } from 'nostr-auth-middleware';
 ```
 
 ### CommonJS
 ```javascript
-const { NostrAuthMiddleware } = require('nostr-auth-middleware');
+const { NostrAuthMiddleware, Nip46SignerMiddleware } = require('nostr-auth-middleware');
 ```
 
 ### Browser
 ```html
 <script src="dist/browser/nostr-auth-middleware.min.js"></script>
 <script>
+  // NIP-07 (browser extension)
   const auth = new NostrAuthMiddleware.NostrBrowserAuth();
+
+  // NIP-46 (remote signer / bunker)
+  const nip46 = new NostrAuthMiddleware.Nip46AuthHandler({
+    bunkerUri: 'bunker://...?relay=wss://relay.example.com',
+    serverUrl: 'https://auth.example.com'
+  });
 </script>
 ```
 
@@ -55,26 +62,32 @@ This middleware follows key principles that promote security, auditability, and 
 
 ### 3. Integration Ready
 ```
-+---------------+
-|  Client App  |
-+-------+-------+
-        |
-        v
-+---------------+
-| Nostr Auth    | <-- This Service
-|  Service      |     Simple Auth Only
-+-------+-------+
-        |
-        v
-+---------------+
-| App Platform  | <-- Your Business Logic
-|    API        |     User Tiers
-+---------------+     Rate Limits
++------------------+     +------------------+
+| Client App       |     | NIP-46 Bunker    |
+| (NIP-07 ext or   |     | (Remote Signer)  |
+|  NIP-46 bunker)  |     +--------+---------+
++--------+---------+              |
+         |                        |
+         v           kind 24133   v
++----------------------------------+
+|        Nostr Auth Service        | <-- This Service
+|  NIP-07 challenge/verify        |     Simple Auth Only
+|  NIP-46 signer middleware        |
++----------------+-----------------+
+                 |
+                 v
++------------------+
+|  App Platform    | <-- Your Business Logic
+|      API         |     User Tiers
++------------------+     Rate Limits
 ```
 
 ## Core Features
 
-- Authentication: NIP-07 Compatible Authentication
+- **NIP-07 Authentication**: Browser extension auth via `window.nostr` (nos2x, Alby, NostrKey, etc.)
+- **NIP-46 Authentication**: Remote signer / bunker auth via encrypted kind 24133 events
+- **NIP-46 Signer Middleware**: Express middleware to act as a NIP-46 signer (accept remote signing requests)
+- **NIP-46 Client Handler**: Browser-side handler to authenticate via remote signers
 - Enrollment: Secure User Enrollment with Nostr
 - Validation: Comprehensive Event Validation
 - Cryptography: Advanced Cryptographic Operations
@@ -198,7 +211,9 @@ Profile Cache Cleared: { pubkey }
 ## Documentation
 
 - [Getting Started](docs/getting-started.md) - Quick start guide
-- [API Documentation](docs/api.md) - API endpoints and usage
+- [API Documentation](docs/api.md) - Full API reference (NIP-07 + NIP-46)
+- [Authentication Flow](docs/authentication-flow.md) - NIP-07 and NIP-46 flow diagrams
+- [Browser Authentication](docs/browser-authentication.md) - Client-side auth (NIP-07 + NIP-46)
 - [Security Guide](docs/security.md) - Security best practices and key management
 - [TypeScript Guide](docs/typescript.md) - TypeScript declaration patterns and best practices
 
@@ -249,6 +264,54 @@ const challenge = await auth.signChallenge();
 // Verify a session
 const isValid = await auth.validateSession(session);
 ```
+
+## NIP-46 Remote Signer Authentication
+
+For applications that authenticate users via NIP-46 bunkers (remote signers like NostrKey), instead of directly through browser extensions.
+
+### Client Side (Browser)
+
+```typescript
+import { Nip46AuthHandler } from 'nostr-auth-middleware/browser';
+
+const auth = new Nip46AuthHandler({
+  bunkerUri: 'bunker://<remote-pubkey>?relay=wss://relay.example.com&secret=...',
+  serverUrl: 'https://auth.example.com',
+});
+
+// Provide your own relay transport
+auth.setTransport({
+  sendEvent: async (event) => { /* publish to relay */ },
+  subscribe: (filter, onEvent) => { /* subscribe and call onEvent */ return () => {}; },
+});
+
+await auth.connect();
+const result = await auth.authenticate();
+// result: { pubkey, signedEvent, sessionInfo, timestamp }
+```
+
+### Server Side (Express Signer Middleware)
+
+```typescript
+import { Nip46SignerMiddleware, createNip46Signer } from 'nostr-auth-middleware';
+
+const signer = createNip46Signer(
+  {
+    signerSecretKey: process.env.SIGNER_SECRET_KEY,
+    relays: ['wss://relay.example.com'],
+    secret: 'optional-connection-secret',
+  },
+  {
+    getPublicKey: () => myPubkey,
+    signEvent: (eventJson) => JSON.stringify(signMyEvent(JSON.parse(eventJson))),
+  }
+);
+
+app.use('/nip46', signer.getRouter());
+// Routes: POST /nip46/request, GET /nip46/info, GET /nip46/bunker-uri
+```
+
+See the [Authentication Flow Guide](docs/authentication-flow.md) for detailed NIP-46 sequence diagrams.
 
 ## Development Mode
 

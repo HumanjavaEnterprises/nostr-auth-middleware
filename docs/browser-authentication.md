@@ -1,14 +1,19 @@
 # Browser Authentication Guide
 
-The browser authentication module provides a lightweight client-side authentication flow using NIP-07. This implementation is designed for web applications that need to authenticate users through their Nostr browser extensions (like nos2x or Alby).
+The browser authentication module provides lightweight client-side authentication flows for web applications. Two protocols are supported:
+
+- **NIP-07** (`NostrBrowserAuth`) — authenticates via browser extensions like nos2x, Alby, or NostrKey
+- **NIP-46** (`Nip46AuthHandler`) — authenticates via remote signers (bunkers) over relays
 
 ## Features
 
-- NIP-07 compliant authentication
+- NIP-07 compliant authentication via `window.nostr`
+- NIP-46 remote signer authentication via kind 24133 events
+- Transport-agnostic NIP-46 — you provide relay I/O
 - Challenge-response based security
 - Session management
 - TypeScript support
-- Configurable event kinds and client names
+- Configurable event kinds and timeouts
 
 ## Installation
 
@@ -249,4 +254,182 @@ export default {
   }
 }
 </script>
+```
+
+---
+
+## NIP-46 Remote Signer Authentication
+
+For apps that authenticate users via NIP-46 bunkers (remote signers) instead of browser extensions. This is useful when:
+
+- The user's keys are managed by a separate app (e.g., NostrKey browser plugin acting as a bunker)
+- You need to support mobile or cross-device authentication
+- The signing app runs in a different context than the web app
+
+### Installation
+
+```bash
+npm install nostr-auth-middleware
+```
+
+### Basic Usage
+
+```typescript
+import { Nip46AuthHandler } from 'nostr-auth-middleware/browser';
+
+const auth = new Nip46AuthHandler({
+  bunkerUri: 'bunker://<remote-pubkey>?relay=wss://relay.example.com&secret=mysecret',
+  serverUrl: 'https://auth.example.com',
+});
+```
+
+### Transport Interface
+
+NIP-46 requires relay communication. You provide the transport — the handler doesn't own any WebSocket connections. This keeps it compatible with any relay library.
+
+```typescript
+interface Nip46Transport {
+  /** Publish a signed kind 24133 event to relays */
+  sendEvent(event: SignedNostrEvent): Promise<void>;
+  /** Subscribe to events matching a filter. Returns a cleanup function. */
+  subscribe(
+    filter: { kinds: number[]; '#p': string[]; since?: number },
+    onEvent: (event: SignedNostrEvent) => void
+  ): () => void;
+}
+```
+
+Example with a hypothetical relay library:
+
+```typescript
+auth.setTransport({
+  sendEvent: async (event) => {
+    await pool.publish(['wss://relay.example.com'], event);
+  },
+  subscribe: (filter, onEvent) => {
+    const sub = pool.subscribe(['wss://relay.example.com'], [filter]);
+    sub.on('event', onEvent);
+    return () => sub.close();
+  },
+});
+```
+
+### Configuration
+
+```typescript
+const auth = new Nip46AuthHandler({
+  // Option 1: bunker:// URI (recommended)
+  bunkerUri: 'bunker://<hex-pubkey>?relay=wss://relay.example.com&secret=...',
+
+  // Option 2: direct config
+  remotePubkey: '<hex-pubkey>',
+  relays: ['wss://relay.example.com'],
+  secret: 'connection-secret',
+
+  // Common options
+  serverUrl: 'https://auth.example.com',  // Required for authenticate()
+  timeout: 30000,       // Remote signer response timeout (ms)
+  customKind: 22242,    // Event kind for challenge events
+  permissions: 'sign_event,get_public_key',  // Requested permissions
+});
+```
+
+### Authentication Flow
+
+1. **Connect** — Creates an ephemeral keypair, sends a `connect` request to the bunker, waits for `ack`
+2. **Get Public Key** — Asks the bunker for the user's identity pubkey
+3. **Fetch Challenge** — Requests a challenge from your auth server
+4. **Sign Challenge** — Asks the bunker to sign the challenge event
+5. **Verify** — Submits the signed event to your auth server for JWT
+
+```typescript
+// Full flow
+auth.setTransport(myTransport);
+await auth.connect();
+const result = await auth.authenticate();
+// result: { pubkey, signedEvent, sessionInfo, timestamp }
+```
+
+### Session Management
+
+```typescript
+// Check if the remote signer is still reachable
+const isAlive = await auth.validateSession();
+
+// Get session info
+const info = auth.getSessionInfo();
+// { clientPubkey: '...', remotePubkey: '...' } or null
+
+// Clean up
+auth.destroy();
+```
+
+### Error Handling
+
+```typescript
+try {
+  await auth.connect(transport);
+  const result = await auth.authenticate();
+} catch (error) {
+  if (error.message.includes('timed out')) {
+    // Remote signer didn't respond within timeout
+  } else if (error.message.includes('Connect failed')) {
+    // Bunker rejected the connection (bad secret, etc.)
+  } else if (error.message.includes('Transport is required')) {
+    // Forgot to set transport before connecting
+  } else if (error.message.includes('Not connected')) {
+    // Called authenticate() before connect()
+  }
+}
+```
+
+### Choosing Between NIP-07 and NIP-46
+
+| | NIP-07 (`NostrBrowserAuth`) | NIP-46 (`Nip46AuthHandler`) |
+|---|---|---|
+| **How it works** | Calls `window.nostr` directly | Sends encrypted messages via relays |
+| **User experience** | Extension popup for each action | Approve in remote signer app |
+| **Key location** | In the browser extension | In the bunker (can be anywhere) |
+| **Cross-device** | No — same browser only | Yes — any device with relay access |
+| **Transport** | None needed | You provide relay I/O |
+| **Best for** | Simple web apps | Apps needing remote/mobile signing |
+
+### React Example with NIP-46
+
+```typescript
+import { Nip46AuthHandler } from 'nostr-auth-middleware/browser';
+import { useState } from 'react';
+
+function BunkerLogin({ bunkerUri, serverUrl, transport }) {
+  const [pubkey, setPubkey] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function login() {
+    setLoading(true);
+    setError(null);
+    try {
+      const auth = new Nip46AuthHandler({ bunkerUri, serverUrl });
+      auth.setTransport(transport);
+      await auth.connect();
+      const result = await auth.authenticate();
+      setPubkey(result.pubkey);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (pubkey) return <p>Authenticated: {pubkey.slice(0, 12)}...</p>;
+
+  return (
+    <div>
+      <button onClick={login} disabled={loading}>
+        {loading ? 'Connecting to bunker...' : 'Login with NIP-46'}
+      </button>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+    </div>
+  );
+}
 ```

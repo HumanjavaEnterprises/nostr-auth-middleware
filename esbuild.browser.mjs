@@ -39,6 +39,7 @@ const result = await build({
   external: ['express', 'winston', 'jsonwebtoken'],
   alias: {
     '@': path.resolve('src'),
+    'nostr-crypto-utils/nip46': path.resolve('node_modules/nostr-crypto-utils/dist/cjs/nips/nip-46.js'),
     'nostr-crypto-utils': path.resolve('node_modules/nostr-crypto-utils/dist/cjs/index.js'),
   },
   plugins: [emptyNodeBuiltins],

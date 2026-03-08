@@ -65,8 +65,58 @@ app.listen(3000);
 
 In development mode, a default secret is used if `JWT_SECRET` is not provided. **Never use the default secret in production.**
 
+## NIP-46 Setup (Remote Signer)
+
+If your users authenticate via NIP-46 bunkers instead of browser extensions:
+
+### Client Side (Browser)
+
+```typescript
+import { Nip46AuthHandler } from 'nostr-auth-middleware/browser';
+
+const auth = new Nip46AuthHandler({
+  bunkerUri: 'bunker://<pubkey>?relay=wss://relay.example.com',
+  serverUrl: 'https://auth.example.com',
+});
+
+// You provide the relay transport
+auth.setTransport({
+  sendEvent: async (event) => { /* publish to relay */ },
+  subscribe: (filter, onEvent) => { /* subscribe */ return () => {}; },
+});
+
+await auth.connect();
+const result = await auth.authenticate();
+```
+
+### Server Side (Express Signer)
+
+```typescript
+import express from 'express';
+import { createNip46Signer } from 'nostr-auth-middleware';
+
+const app = express();
+app.use(express.json());
+
+const signer = createNip46Signer(
+  {
+    signerSecretKey: process.env.SIGNER_SECRET_KEY,
+    relays: ['wss://relay.example.com'],
+  },
+  {
+    getPublicKey: () => process.env.SIGNER_PUBLIC_KEY,
+    signEvent: (eventJson) => { /* sign and return */ },
+  }
+);
+
+app.use('/nip46', signer.getRouter());
+app.listen(3000);
+```
+
 ## Next Steps
 
-- [API Documentation](api.md) — Full API reference
+- [API Documentation](api.md) — Full API reference (NIP-07 + NIP-46)
+- [Authentication Flow](authentication-flow.md) — Sequence diagrams for both protocols
+- [Browser Authentication](browser-authentication.md) — Client-side auth guide
 - [Security Guide](security.md) — Key management and security best practices
 - [TypeScript Guide](typescript.md) — TypeScript patterns and declarations

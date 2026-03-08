@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-08
+
+### Added
+- **NIP-46 Remote Signer Support** — full client and server-side NIP-46 authentication
+- `Nip46SignerMiddleware` — Express middleware that acts as a NIP-46 signer
+  - `POST /request` — receive and respond to kind 24133 events
+  - `GET /info` — signer metadata (pubkey, relays, supported methods)
+  - `GET /bunker-uri` — generate bunker:// connection URI
+  - In-memory session tracking with configurable timeout and periodic cleanup
+- `Nip46AuthHandler` — browser-side handler for authenticating via remote signers (bunkers)
+  - Transport-agnostic via `Nip46Transport` interface (consumer provides relay I/O)
+  - `connect()` / `authenticate()` / `validateSession()` / `destroy()` lifecycle
+- `createNip46Signer()` factory function (mirrors `createNostrAuth()` pattern)
+- New types: `Nip46AuthConfig`, `Nip46SignerConfig`, `Nip46AuthResult`
+- `nostr-crypto-utils/nip46` subpath module declaration in type definitions
+- esbuild alias for `nostr-crypto-utils/nip46` in browser bundle
+- 25 new tests (13 signer middleware, 12 auth handler)
+- Updated documentation: README, API reference, authentication flow, browser auth guide
+
+### Changed
+- `nostr-crypto-utils` dependency upgraded from ^0.6.0 to ^0.7.0
+
+## [0.4.0] - 2026-03-06
+
+### Changed
+- Migrated build system from webpack to esbuild
+- Upgraded to Noble 2.0 (`@noble/curves` ^2.0.1, `@noble/hashes` ^2.0.1)
+- Upgraded to vitest 4, ESLint 10
+- Zero production vulnerabilities
+
 ## [0.3.5] - 2025-02-19
 
 ### Changed

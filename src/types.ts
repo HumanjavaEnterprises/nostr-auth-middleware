@@ -109,6 +109,62 @@ export interface VerificationResult {
   data?: Record<string, unknown>;
 }
 
+// ─── NIP-46 Types ───────────────────────────────────────────────────────────
+
+/**
+ * Configuration for client-side NIP-46 authentication
+ */
+export interface Nip46AuthConfig {
+  /** bunker:// URI (if provided, remotePubkey/relays/secret are extracted from it) */
+  bunkerUri?: string;
+  /** Remote signer's public key (hex) — alternative to bunkerUri */
+  remotePubkey?: string;
+  /** Relay URLs for NIP-46 communication */
+  relays?: string[];
+  /** Connection secret */
+  secret?: string;
+  /** Custom kind for challenge events (default: 22242) */
+  customKind?: number;
+  /** Timeout in ms for remote signer responses (default: 30000) */
+  timeout?: number;
+  /** Server URL for challenge/verify endpoints */
+  serverUrl?: string;
+  /** Requested permissions (comma-separated) */
+  permissions?: string;
+}
+
+/**
+ * Configuration for server-side NIP-46 signer middleware
+ */
+export interface Nip46SignerConfig {
+  /** Signer's secret key (hex) */
+  signerSecretKey: string;
+  /** Signer's public key (hex) — derived from signerSecretKey if not provided */
+  signerPubkey?: string;
+  /** Expected connection secret */
+  secret?: string;
+  /** Relay URLs to advertise */
+  relays: string[];
+  /** Require connect handshake before other methods (default: true) */
+  requireAuth?: boolean;
+  /** Session timeout in ms (default: 3600000 = 1 hour) */
+  sessionTimeoutMs?: number;
+}
+
+/**
+ * Result of a NIP-46 authentication flow
+ */
+export interface Nip46AuthResult {
+  /** Authenticated user's public key (hex) */
+  pubkey: string;
+  /** The signed challenge event */
+  signedEvent: NostrEvent;
+  /** Session info (clientPubkey, remotePubkey) */
+  sessionInfo: { clientPubkey: string; remotePubkey: string };
+  /** Timestamp of authentication */
+  timestamp: number;
+}
+
 // Extend Window interface to include Nostr
 declare global {
   interface Window {

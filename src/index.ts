@@ -5,10 +5,12 @@
 
 // Core middleware
 import { NostrAuthMiddleware } from './middleware/nostr-auth.middleware.js';
-import type { NostrAuthConfig, JWTExpiresIn } from './types.js';
+import { Nip46SignerMiddleware } from './middleware/nip46-signer.middleware.js';
+import type { NostrAuthConfig, JWTExpiresIn, Nip46SignerConfig } from './types.js';
 
 // Re-export middleware
 export { NostrAuthMiddleware };
+export { Nip46SignerMiddleware };
 
 // Types
 export type {
@@ -17,7 +19,10 @@ export type {
   NostrProfile,
   NostrEnrollment,
   VerificationResult,
-  JWTExpiresIn
+  JWTExpiresIn,
+  Nip46AuthConfig,
+  Nip46SignerConfig,
+  Nip46AuthResult,
 } from './types.js';
 
 export type { NostrEvent } from './utils/types.js';
@@ -66,6 +71,19 @@ export const createNostrAuth = (config: NostrAuthConfig): NostrAuthMiddleware =>
     jwtExpiresIn: config.jwtExpiresIn as JWTExpiresIn
   };
   return new NostrAuthMiddleware(typedConfig);
+};
+
+/**
+ * Create and configure a new NIP-46 Signer Middleware instance
+ * @param config - Configuration for the signer
+ * @param handlers - Callback handlers for NIP-46 methods
+ * @returns Configured Nip46SignerMiddleware instance
+ */
+export const createNip46Signer = (
+  config: Nip46SignerConfig,
+  handlers: import('nostr-crypto-utils/nip46').Nip46SignerHandlers
+): Nip46SignerMiddleware => {
+  return new Nip46SignerMiddleware(config, handlers);
 };
 
 // Default export

@@ -86,9 +86,9 @@ export const config: NostrConfig = {
 export async function loadConfig(envPath?: string): Promise<NostrConfig> {
   // Load environment variables
   if (envPath) {
-    dotenv.config({ path: envPath });
+    dotenv.config({ path: envPath, quiet: true });
   } else {
-    dotenv.config();
+    dotenv.config({ quiet: true });
   }
 
   const loadedConfig: NostrConfig = {

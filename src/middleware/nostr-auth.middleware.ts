@@ -72,7 +72,7 @@ export class NostrAuthMiddleware {
    */
   async handleChallenge(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { pubkey } = req.params;
+      const pubkey = Array.isArray(req.params.pubkey) ? req.params.pubkey[0] : req.params.pubkey;
       if (!pubkey) {
         res.status(400).json({ error: 'Missing pubkey' });
         return;
@@ -129,7 +129,7 @@ export class NostrAuthMiddleware {
    */
   async handleProfileFetch(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { pubkey } = req.params;
+      const pubkey = Array.isArray(req.params.pubkey) ? req.params.pubkey[0] : req.params.pubkey;
       if (!pubkey) {
         res.status(400).json({ error: 'Missing pubkey' });
         return;

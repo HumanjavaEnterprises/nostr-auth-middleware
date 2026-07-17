@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-17
+
+### Security
+- **CRITICAL — account-takeover / auth-bypass fixed.** `NostrService.verifyChallenge`
+  never bound the signed event to the issued challenge. The Supabase branch only ran a
+  generic signature/timestamp check and then looked up *any* pending challenge for the
+  pubkey — it never compared the signed challenge, never checked the event kind, and
+  never checked the challenge tag. An attacker could request a challenge for a victim's
+  pubkey, grab **any** recently-signed public event from that victim off a relay (e.g. a
+  kind-1 note within the freshness window), POST it to `/verify`, and receive a valid JWT
+  for the victim — full account takeover with no access to the victim's key. Verification
+  now enforces the full challenge-event contract (kind 22242, a `['challenge', nonce]`
+  tag, event-id/hash integrity, valid signature, fresh timestamp) via `validateChallengeEvent`,
+  and binds the signed event to the exact issued challenge nonce in **both** the in-memory
+  and Supabase storage branches before deleting the row and returning success.
+- **`generateChallenge()` no longer replayable.** The exported helper used the (public,
+  constant) pubkey as the challenge value with fixed content, providing zero freshness.
+  It now generates a cryptographically-random 32-byte nonce in the `['challenge', nonce]`
+  tag, binds the target pubkey via a separate `['p', pubkey]` tag, and returns the nonce
+  alongside the signed event so callers can enforce single-use.
+
+### Fixed
+- In-memory challenge verification matched the raw stored challenge against the templated
+  event `content`, so the bundled `NostrBrowserAuth` / `Nip46AuthHandler` clients could
+  **never** authenticate in the default (no-Supabase) deployment ("Challenge not found").
+  Both branches now match on the canonical `['challenge', nonce]` tag.
+- `verifyChallenge` accepted any event kind — a non-challenge event (kind 1/0, DM, ...)
+  signed by the target was treated as a valid response. Kind 22242 (or configured
+  `customKind`) is now enforced on the verification path.
+- `generateEventHash()` returned a Promise while being typed `string`, so every event-id
+  integrity check (`validateChallengeEvent` / `validateEnrollmentEvent`) compared a Promise
+  against a string and **always** reported a hash mismatch. It is now `async` and awaited.
+- Client/server HTTP method mismatch: clients fetch `GET /challenge/:pubkey` but the router
+  only registered `POST`. `GET` is now registered (POST kept for compatibility).
+- Supabase `createChallenge` never cleared prior rows and `verifyChallenge` used `.single()`,
+  so a second challenge request (reload/retry/double-click) left multiple rows and locked
+  the user out. Prior rows are now cleared on issue, and lookup uses
+  `.order().limit(1).maybeSingle()`.
+- `Nip46AuthHandler.authenticate()` discarded the server-issued JWT; it now parses the
+  `/verify` response body and returns `token` (added to `Nip46AuthResult`).
+- `validateEvent` rejected validly-signed events with empty `content` (spec-legal per
+  NIP-01) as "Missing required fields"; it now only requires `content` to be a string.
+
+### Changed (breaking)
+- Challenge/verification contract standardized on the `['challenge', nonce]` tag. Clients
+  MUST sign a kind-22242 event carrying `['challenge', <issued challenge>]`; events whose
+  id is not the canonical hash, whose kind is not 22242, or which are not bound to the
+  issued challenge are now rejected.
+- `generateChallenge()` return type changed from `Promise<NostrEvent>` to
+  `Promise<{ event: NostrEvent; challenge: string }>`.
+- `generateEventHash()` is now `async` (`Promise<string>`) and must be awaited.
+
+### Added
+- End-to-end tests that run `createChallenge -> construct/sign the exact client event ->
+  verifyChallenge` with real crypto and **no** NostrService mock, for both the in-memory
+  and stubbed-Supabase branches (happy path, account-takeover rejection, nonce uniqueness,
+  replay rejection, tamper/lockout).
+- Exported `getChallengeTagValue()` and `DEFAULT_CHALLENGE_KIND` (the canonical contract).
+
 ## [0.5.0] - 2026-03-08
 
 ### Added

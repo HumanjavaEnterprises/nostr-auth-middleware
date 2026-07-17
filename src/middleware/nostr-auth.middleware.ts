@@ -58,6 +58,10 @@ export class NostrAuthMiddleware {
    * @private
    */
   private setupRoutes() {
+    // Accept both GET and POST for challenge issuance. The bundled clients
+    // (NostrBrowserAuth / Nip46AuthHandler) fetch challenges with GET
+    // /challenge/:pubkey; POST is kept for backward compatibility.
+    this.router.get('/challenge/:pubkey', this.handleChallenge.bind(this));
     this.router.post('/challenge/:pubkey', this.handleChallenge.bind(this));
     this.router.post('/verify', this.handleVerification.bind(this));
     this.router.get('/profile/:pubkey', this.handleProfileFetch.bind(this));

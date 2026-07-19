@@ -176,11 +176,22 @@ export class Nip46AuthHandler {
       throw new Error('Server verification failed');
     }
 
+    // The /verify endpoint returns the issued JWT — the whole point of the flow.
+    // Parse it and surface it to the caller instead of discarding the body.
+    let token: string | undefined;
+    try {
+      const body = await verifyRes.json();
+      token = body?.token;
+    } catch {
+      // Non-JSON / empty body — leave token undefined.
+    }
+
     return {
       pubkey,
       signedEvent,
       sessionInfo: getSessionInfo(this.session),
       timestamp: Date.now(),
+      token,
     };
   }
 

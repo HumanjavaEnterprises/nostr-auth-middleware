@@ -13,6 +13,23 @@ import { VerificationResult } from '../types.js';
 
 const logger = createLogger('NostrEventValidator');
 
+/** Default Nostr event kind for authentication challenge events (NIP-42 style). */
+export const DEFAULT_CHALLENGE_KIND = 22242;
+
+/**
+ * Extracts the challenge nonce carried in an event's ['challenge', <nonce>] tag.
+ * This is the single, canonical representation of the challenge value used across
+ * the auth flow (bundled browser/NIP-46 clients set this tag; the server binds the
+ * signed event to the issued challenge by comparing this value).
+ * @param {NostrEvent} event - The signed challenge event
+ * @returns {string | undefined} The challenge value, or undefined if absent
+ */
+export function getChallengeTagValue(event: NostrEvent): string | undefined {
+  if (!Array.isArray(event.tags)) return undefined;
+  const tag = event.tags.find(t => Array.isArray(t) && t[0] === 'challenge');
+  return tag?.[1];
+}
+
 /**
  * Validates a generic Nostr event
  * @param {NostrEvent} event - The event to validate
@@ -27,8 +44,11 @@ const logger = createLogger('NostrEventValidator');
  */
 export async function validateEvent(event: NostrEvent): Promise<VerificationResult> {
   try {
-    // Check required fields
-    if (!event.pubkey || !event.content || !event.sig) {
+    // Check required fields.
+    // NOTE: content must be a *string*, but empty string is spec-legal (NIP-01):
+    // kind 3/7/22242 auth events routinely carry content:''. Using truthiness
+    // here previously rejected validly-signed empty-content events.
+    if (!event.pubkey || typeof event.content !== 'string' || !event.sig) {
       return { success: false, error: 'Missing required fields' };
     }
 
@@ -80,22 +100,25 @@ export async function validateEvent(event: NostrEvent): Promise<VerificationResu
  * 5. Verifies cryptographic signature
  * @security Critical for preventing replay attacks and ensuring challenge integrity
  */
-export async function validateChallengeEvent(event: NostrEvent): Promise<boolean> {
+export async function validateChallengeEvent(
+  event: NostrEvent,
+  expectedKind: number = DEFAULT_CHALLENGE_KIND
+): Promise<boolean> {
   try {
     const result = await validateEvent(event);
     if (!result.success) {
       return false;
     }
 
-    // Challenge events must be kind 22242
-    if (event.kind !== 22242) {
+    // Challenge events must be the configured challenge kind (default 22242)
+    if (event.kind !== expectedKind) {
       logger.warn('Invalid event kind for challenge');
       return false;
     }
 
-    // Must have a challenge tag
-    const challengeTag = event.tags.find(t => t[0] === 'challenge');
-    if (!challengeTag) {
+    // Must have a challenge tag carrying a non-empty nonce
+    const challengeValue = getChallengeTagValue(event);
+    if (!challengeValue) {
       logger.warn('Missing challenge tag');
       return false;
     }
@@ -105,8 +128,8 @@ export async function validateChallengeEvent(event: NostrEvent): Promise<boolean
       return false;
     }
 
-    // Validate event hash
-    const hash = generateEventHash(event);
+    // Validate event hash (id integrity). generateEventHash is async.
+    const hash = await generateEventHash(event);
     if (hash !== event.id) {
       logger.error('Event hash mismatch');
       return false;
@@ -163,8 +186,8 @@ export async function validateEnrollmentEvent(event: NostrEvent): Promise<boolea
       return false;
     }
 
-    // Validate event hash
-    const hash = generateEventHash(event);
+    // Validate event hash (id integrity). generateEventHash is async.
+    const hash = await generateEventHash(event);
     if (hash !== event.id) {
       logger.error('Event hash mismatch');
       return false;

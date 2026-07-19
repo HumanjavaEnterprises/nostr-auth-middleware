@@ -1,6 +1,6 @@
 {
   "name": "nostr-auth-middleware",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "A focused, security-first authentication middleware for Nostr applications",
   "author": "vveerrgg",
   "type": "module",
@@ -81,7 +81,7 @@
     "express-rate-limit": "^8.3.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "nostr-crypto-utils": "^0.7.0",
+    "nostr-crypto-utils": "^0.8.0",
     "tslib": "^2.8.1",
     "winston": "^3.19.0"
   },

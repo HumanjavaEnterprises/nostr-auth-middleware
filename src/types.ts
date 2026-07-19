@@ -163,6 +163,8 @@ export interface Nip46AuthResult {
   sessionInfo: { clientPubkey: string; remotePubkey: string };
   /** Timestamp of authentication */
   timestamp: number;
+  /** JWT issued by the server's /verify endpoint on success (if returned) */
+  token?: string;
 }
 
 // Extend Window interface to include Nostr

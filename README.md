@@ -2,6 +2,13 @@
 
 A focused, security-first authentication middleware for Nostr applications. Supports both NIP-07 (browser extension) and NIP-46 (remote signer / bunker) authentication flows.
 
+> **Release note — v0.6.0 (staged, pending publish).** Part of the coordinated
+> 2026-07 correctness pass across the Nostr library family, verified against a
+> shared known-answer vector set (NIP-44 v2 / NIP-49 / NIP-19 TLV / BIP-340). This
+> release adds challenge-binding to close an auth-bypass (see the security note
+> below). The family dogfoods only its own libraries — no upstream `nostr-tools`
+> dependency.
+
 ## Requirements
 
 - Node.js ≥18.0.0 (Active LTS versions only)
@@ -16,6 +23,12 @@ npm install nostr-auth-middleware
 **Important Security Notice**
 
 This library handles cryptographic keys and authentication tokens that are critical for securing your Nostr application and user data. Any private keys (`nsec`) or authentication tokens must be stored and managed with the utmost security and care.
+
+> **🔒 Security fix in 0.6.0 (breaking — upgrade immediately).** Versions prior to 0.6.0 did not bind the signed challenge event to the issued challenge during `verifyChallenge`: the Supabase path accepted **any** recently-signed event from a target pubkey (any kind, no challenge match), allowing account takeover without the victim's key, and the exported `generateChallenge()` used a static, replayable challenge value. 0.6.0 enforces the full challenge contract — kind 22242, a `['challenge', <issued nonce>]` tag, event-id integrity, valid signature, freshness, and an exact nonce match — on both storage branches, and `generateChallenge()` now emits a cryptographically-random nonce. The challenge/verification wire format changed; see the [CHANGELOG](CHANGELOG.md) for migration details.
+
+### Challenge/verification contract
+
+The server issues a random per-request challenge nonce. To authenticate, the client signs a **kind 22242** event that carries the challenge in a `['challenge', <challenge>]` tag (the bundled `NostrBrowserAuth` and `Nip46AuthHandler` clients do this automatically) and POSTs it to `/verify`. The server verifies the signature, event-id integrity, kind, and timestamp, and requires the challenge tag to match the exact issued nonce before returning a JWT. Challenges are single-use.
 
 Developers using this middleware must inform their users about the critical nature of managing private keys and tokens. It is the user's responsibility to securely store and manage these credentials. The library and its authors disclaim any responsibility or liability for lost keys, compromised tokens, or data resulting from mismanagement.
 

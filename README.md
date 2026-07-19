@@ -2,6 +2,13 @@
 
 A focused, security-first authentication middleware for Nostr applications. Supports both NIP-07 (browser extension) and NIP-46 (remote signer / bunker) authentication flows.
 
+> **Release note — v0.6.0 (staged, pending publish).** Part of the coordinated
+> 2026-07 correctness pass across the Nostr library family, verified against a
+> shared known-answer vector set (NIP-44 v2 / NIP-49 / NIP-19 TLV / BIP-340). This
+> release adds challenge-binding to close an auth-bypass (see the security note
+> below). The family dogfoods only its own libraries — no upstream `nostr-tools`
+> dependency.
+
 ## Requirements
 
 - Node.js ≥18.0.0 (Active LTS versions only)
